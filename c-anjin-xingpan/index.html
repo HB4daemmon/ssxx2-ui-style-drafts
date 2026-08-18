@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draft C · 暗金星盘 — 择定命格</title>
+<style>
+  /* ============ Draft C 暗金星盘 ============
+     视觉语言：深夜星图 / 暗金轨道 / 命星连线
+     画布：750×1334 逻辑面，JS 等比缩放适配 390×844 与桌面
+  */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --night: #080b16;         /* 夜空底 */
+    --night-2: #0d1224;
+    --gold: #d4af37;          /* 暗金 */
+    --gold-hi: #f0d98c;
+    --violet: #6b5b95;        /* 暗紫 */
+    --starlight: #c8d0e8;     /* 星光 */
+    --dim: #7c86a8;
+    --serif: "Songti SC", "STSong", "Noto Serif CJK SC", "SimSun", serif;
+  }
+  html, body { height: 100%; background: #04060d; }
+  body { font-family: var(--serif); color: var(--starlight); overflow: hidden; }
+
+  /* ---------- review 外壳（非玩家画布） ---------- */
+  #shell {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 12px;
+    padding: 6px 14px;
+    background: rgba(6, 9, 18, .92);
+    border-bottom: 1px solid rgba(212, 175, 55, .28);
+    font-size: 12px; letter-spacing: .08em; color: var(--dim);
+  }
+  #shell .name { color: var(--gold); font-weight: 700; }
+  #shell .badge { border: 1px solid rgba(212, 175, 55, .35); border-radius: 10px; padding: 1px 10px; white-space: nowrap; }
+  #shell .spacer { flex: 1; }
+  #shell button {
+    font-family: inherit; font-size: 12px; letter-spacing: .1em;
+    background: none; border: 1px solid rgba(212, 175, 55, .5); border-radius: 10px;
+    color: var(--gold); padding: 3px 12px; cursor: pointer;
+  }
+  #shell button:hover { background: rgba(212, 175, 55, .12); }
+
+  /* ---------- 舞台适配 ---------- */
+  #viewport {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background:
+      radial-gradient(1000px 700px at 50% -10%, rgba(107, 91, 149, .14), transparent 60%),
+      #04060d;
+  }
+  #stage-wrap { position: relative; }
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: 750px; height: 1334px; transform-origin: top left; overflow: hidden;
+    background:
+      radial-gradient(760px 520px at 50% 8%, rgba(107, 91, 149, .22), transparent 62%),
+      radial-gradient(600px 400px at 85% 90%, rgba(212, 175, 55, .06), transparent 60%),
+      linear-gradient(180deg, var(--night-2) 0%, var(--night) 55%, #05070f 100%);
+    box-shadow: 0 0 100px rgba(0, 0, 0, .9);
+  }
+  #sky { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+  .star {
+    position: absolute; border-radius: 50%;
+    background: radial-gradient(circle, #fff 0%, rgba(200, 208, 232, .9) 35%, transparent 75%);
+    animation: twinkle ease-in-out infinite alternate;
+  }
+  @keyframes twinkle { from { opacity: .25; transform: scale(.8); } to { opacity: 1; transform: scale(1.15); } }
+
+  /* 星盘环 */
+  .astrolabe {
+    position: absolute; left: 50%; top: 130px; z-index: 2; pointer-events: none;
+    width: 560px; height: 560px; margin-left: -280px;
+    border: 1px solid rgba(212, 175, 55, .22); border-radius: 50%;
+    animation: spin 90s linear infinite;
+  }
+  .astrolabe::before {
+    content: ""; position: absolute; inset: 46px; border-radius: 50%;
+    border: 1px dashed rgba(212, 175, 55, .18);
+  }
+  .astrolabe::after {
+    content: ""; position: absolute; inset: 110px; border-radius: 50%;
+    border: 1px solid rgba(107, 91, 149, .3);
+  }
+  .astrolabe .tick {
+    position: absolute; left: 50%; top: -6px; width: 2px; height: 14px;
+    background: rgba(212, 175, 55, .5); transform-origin: 1px 286px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* ---------- 画布内容 ---------- */
+  .page { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; padding: 78px 60px 56px; }
+
+  .kicker { text-align: center; font-size: 19px; letter-spacing: .65em; text-indent: .65em; color: var(--dim); }
+  .kicker::before, .kicker::after { content: "✦"; font-size: 13px; vertical-align: 2px; color: rgba(212,175,55,.55); margin: 0 16px; }
+  h1.title {
+    margin-top: 20px; text-align: center; font-size: 60px; font-weight: 400;
+    letter-spacing: .42em; text-indent: .42em; color: var(--gold-hi);
+    text-shadow: 0 0 34px rgba(212, 175, 55, .4);
+  }
+  .hud { margin-top: 26px; display: flex; justify-content: center; gap: 26px; font-size: 19px; letter-spacing: .16em; color: var(--dim); }
+  .hud span { position: relative; padding: 4px 2px; }
+  .hud span::after { content: ""; position: absolute; left: 20%; right: 20%; bottom: -4px; height: 1px; background: linear-gradient(90deg, transparent, rgba(212,175,55,.5), transparent); }
+  .hud .fate-known { color: var(--gold-hi); text-shadow: 0 0 16px rgba(212,175,55,.6); }
+
+  .intro { margin: 30px auto 0; max-width: 560px; text-align: center; font-size: 21px; line-height: 1.9; color: #9aa4c4; letter-spacing: .08em; }
+
+  /* ---------- 命星星卡 ---------- */
+  .cards { margin-top: 44px; display: flex; flex-direction: column; gap: 26px; flex: 1; position: relative; }
+  #constellation { position: absolute; inset: 0; z-index: 1; pointer-events: none; }
+  #constellation line { stroke: rgba(212, 175, 55, .35); stroke-width: 1.5; stroke-dasharray: 5 6; }
+  #constellation line.lit { stroke: var(--gold); stroke-dasharray: none; filter: drop-shadow(0 0 6px rgba(212,175,55,.8)); }
+
+  .card {
+    position: relative; z-index: 2; flex: 1; min-height: 0;
+    display: flex; align-items: stretch;
+    cursor: pointer; user-select: none; text-align: left; font-family: inherit;
+    color: var(--starlight);
+    background: linear-gradient(170deg, rgba(21, 28, 52, .88), rgba(12, 16, 32, .88));
+    border: 1px solid rgba(107, 91, 149, .45); border-radius: 14px;
+    backdrop-filter: blur(2px);
+    box-shadow: 0 12px 34px rgba(0, 0, 0, .55);
+    transition: transform .25s ease, border-color .25s ease, box-shadow .3s ease;
+  }
+  .card:hover { transform: translateY(-3px); border-color: rgba(212, 175, 55, .55); }
+  .card:focus-visible { outline: 3px solid var(--gold); outline-offset: 3px; }
+  .card.selected {
+    border-color: var(--gold);
+    box-shadow: 0 0 0 1px rgba(212,175,55,.6), 0 0 44px rgba(212, 175, 55, .3), 0 12px 34px rgba(0,0,0,.55);
+    background: linear-gradient(170deg, rgba(36, 34, 20, .9), rgba(16, 18, 34, .92));
+  }
+
+  .card .orb {
+    flex: 0 0 124px; display: flex; align-items: center; justify-content: center; position: relative;
+  }
+  .card .orb i {
+    font-style: normal; font-size: 40px; font-weight: 700;
+    width: 78px; height: 78px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--dim); border: 1px solid rgba(124, 134, 168, .5);
+    background: radial-gradient(circle at 38% 32%, rgba(200, 208, 232, .12), rgba(5, 7, 15, .6));
+    transition: all .3s ease;
+  }
+  .card .orb::before { /* 轨道环 */
+    content: ""; position: absolute; width: 104px; height: 104px; border-radius: 50%;
+    border: 1px dashed rgba(124, 134, 168, .35);
+    transition: all .3s ease;
+  }
+  .card.selected .orb i {
+    color: #1a1405; border-color: var(--gold-hi);
+    background: radial-gradient(circle at 38% 32%, #ffe9a8, var(--gold) 65%, #8a6d1d);
+    box-shadow: 0 0 30px rgba(212, 175, 55, .75);
+    text-shadow: none;
+  }
+  .card.selected .orb::before { border-color: rgba(212, 175, 55, .8); transform: rotate(45deg) scale(1.04); }
+
+  .card .body { flex: 1; padding: 22px 28px 22px 4px; display: flex; flex-direction: column; justify-content: center; }
+  .card .name { font-size: 33px; letter-spacing: .24em; color: var(--starlight); font-weight: 400; }
+  .card.selected .name { color: var(--gold-hi); }
+  .card .short { margin-top: 8px; font-size: 21px; line-height: 1.65; color: #9aa4c4; letter-spacing: .05em; }
+  .card .effect {
+    margin-top: 10px; align-self: flex-start; font-size: 19px; letter-spacing: .14em;
+    color: var(--gold); border: 1px solid rgba(212, 175, 55, .4); border-radius: 12px; padding: 3px 14px;
+  }
+  .card .more {
+    margin-top: 10px; font-size: 17px; color: var(--dim); letter-spacing: .16em;
+    background: none; border: none; font-family: inherit; cursor: pointer; text-align: left; padding: 0;
+  }
+  .card .more:hover { color: var(--gold); }
+  .card .full {
+    overflow: hidden; max-height: 0; opacity: 0;
+    transition: max-height .35s ease, opacity .35s ease, margin .35s ease;
+    font-size: 19px; line-height: 1.8; color: #b6c0de;
+  }
+  .card.expanded .full { max-height: 160px; opacity: 1; margin-top: 10px; }
+  .card.readonly { cursor: default; }
+  .card.readonly:hover { transform: none; }
+  .card.dimmed { filter: brightness(.5) saturate(.5); }
+
+  /* ---------- 状态行与主 CTA ---------- */
+  .hint { margin-top: 26px; text-align: center; font-size: 20px; letter-spacing: .18em; color: var(--dim); min-height: 28px; }
+  .hint.armed { color: var(--gold-hi); }
+  .cta {
+    margin-top: 18px; align-self: center; min-width: 460px; padding: 24px 40px;
+    font-family: inherit; font-size: 29px; letter-spacing: .36em; text-indent: .36em; font-weight: 700;
+    color: #14100a; cursor: pointer;
+    background: linear-gradient(168deg, #f0d98c, var(--gold) 55%, #9a7c24);
+    border: 1px solid rgba(255, 240, 190, .6); border-radius: 999px;
+    box-shadow: 0 8px 30px rgba(212, 175, 55, .35), inset 0 1px 0 rgba(255,255,255,.4);
+    transition: filter .2s ease, transform .15s ease, box-shadow .2s ease;
+  }
+  .cta:hover:not(:disabled) { filter: brightness(1.1); box-shadow: 0 10px 38px rgba(212, 175, 55, .5); }
+  .cta:active:not(:disabled) { transform: translateY(2px); }
+  .cta:disabled {
+    cursor: not-allowed; background: #1a2138; color: #5a6488;
+    border-color: rgba(107, 91, 149, .35); box-shadow: none;
+  }
+  .review-note { margin-top: 16px; text-align: center; font-size: 15px; letter-spacing: .12em; color: rgba(124, 134, 168, .5); }
+
+  /* ---------- 确认层（星轨定局） ---------- */
+  .overlay {
+    position: absolute; inset: 0; z-index: 20; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(3, 5, 11, .82); backdrop-filter: blur(3px);
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    width: 600px; padding: 56px 50px 48px; text-align: center; position: relative;
+    background:
+      radial-gradient(120% 90% at 50% 0%, rgba(212, 175, 55, .08), transparent 55%),
+      linear-gradient(175deg, #131a30, #0a0e1d);
+    border: 1px solid rgba(212, 175, 55, .5); border-radius: 18px;
+    box-shadow: 0 30px 90px rgba(0,0,0,.85), 0 0 60px rgba(212,175,55,.12);
+  }
+  .modal::before {
+    content: "✦"; position: absolute; top: -16px; left: 50%; margin-left: -14px;
+    font-size: 26px; color: var(--gold); text-shadow: 0 0 18px rgba(212,175,55,.9);
+  }
+  .modal h2 { font-size: 32px; letter-spacing: .2em; color: var(--gold-hi); font-weight: 400; }
+  .modal p { margin-top: 22px; font-size: 23px; line-height: 1.9; color: var(--starlight); letter-spacing: .06em; }
+  .modal .warn { margin-top: 14px; font-size: 18px; color: var(--violet); letter-spacing: .24em; color: #9d8cc7; }
+  .modal .row { margin-top: 38px; display: flex; gap: 22px; justify-content: center; }
+  .modal .row button {
+    font-family: inherit; font-size: 24px; letter-spacing: .24em; text-indent: .24em;
+    padding: 16px 34px; cursor: pointer; border-radius: 999px;
+  }
+  .btn-ghost { background: none; border: 1px solid rgba(124, 134, 168, .55); color: #9aa4c4; }
+  .btn-ghost:hover { background: rgba(124, 134, 168, .12); }
+  .btn-star {
+    border: 1px solid rgba(255, 240, 190, .55); color: #14100a; font-weight: 700;
+    background: linear-gradient(168deg, #f0d98c, var(--gold) 60%, #9a7c24);
+    box-shadow: 0 6px 24px rgba(212, 175, 55, .4);
+  }
+  .btn-star:hover { filter: brightness(1.1); }
+
+  /* 已定命星环 */
+  .confirmed-banner {
+    position: absolute; left: 0; right: 0; top: 300px; z-index: 15;
+    display: none; justify-content: center; pointer-events: none;
+  }
+  .confirmed-banner.show { display: flex; }
+  .confirmed-banner .halo {
+    padding: 18px 48px; font-size: 30px; letter-spacing: .34em; text-indent: .34em;
+    color: var(--gold-hi); font-weight: 700;
+    background: rgba(20, 18, 8, .85);
+    border: 2px solid var(--gold); border-radius: 999px;
+    box-shadow: 0 0 50px rgba(212, 175, 55, .55), inset 0 0 24px rgba(212,175,55,.2);
+    text-shadow: 0 0 20px rgba(212,175,55,.9);
+    animation: ignite .5s ease-out;
+  }
+  @keyframes ignite { from { transform: scale(.7); opacity: 0; } 60% { transform: scale(1.06); } to { transform: scale(1); opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .star, .astrolabe { animation: none; }
+    .card, .card .orb i, .card .orb::before, .card .full, .cta, .confirmed-banner .halo { animation: none; transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="shell" data-review-shell>
+  <span class="name">Draft C · 暗金星盘</span>
+  <span class="badge" data-prototype-badge>效果原型 · 本地固定内容</span>
+  <span class="badge" data-network-badge>不接接口 / 不读存档</span>
+  <span class="spacer"></span>
+  <span id="vp-label">场景切片：fate · 择定命格</span>
+  <button id="reset" type="button" data-review-reset-page>重置</button>
+</div>
+
+<div id="viewport">
+  <div id="stage-wrap">
+    <main id="stage" data-page-id="fate" aria-label="择定命格">
+      <div id="sky"></div>
+      <div class="astrolabe" id="astrolabe"></div>
+      <div class="page">
+        <div class="kicker">封神 · 第一季 / 第一世</div>
+        <h1 class="title">择定命格</h1>
+        <div class="hud">
+          <span data-life-label>第一世</span>
+          <span data-difficulty-label>劫数 0</span>
+          <span id="hud-fate" data-fate-label>命格未定</span>
+        </div>
+        <p class="intro">三颗命星悬于盘上，各指一条星轨。点亮其一，这一世的星图便不再重排。</p>
+
+        <div class="cards" id="cards">
+          <svg id="constellation" aria-hidden="true"></svg>
+        </div>
+
+        <div class="hint" id="hint" data-selection-hint>尚未选择命格</div>
+        <button class="cta" id="cta" type="button" data-primary-action disabled>请先选择命格</button>
+        <div class="review-note">本视觉稿仅演示「择定命格」场景切片 · 后续页面见完整流程稿</div>
+      </div>
+
+      <div class="confirmed-banner" id="banner"><div class="halo" data-confirmed-seal></div></div>
+
+      <div class="overlay" id="overlay" data-confirm-modal="fate">
+        <div class="modal" role="dialog" aria-modal="true">
+          <h2>命格一经确认，本世不可更改</h2>
+          <p id="modal-text"></p>
+          <div class="warn">星轨既定 · 命星不移</div>
+          <div class="row">
+            <button class="btn-ghost" id="modal-cancel" type="button">再想想</button>
+            <button class="btn-star" id="modal-ok" type="button">确认命格</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+/* ---------- 本地 fixture（源自 page-element-catalog.md §2.1 / §3.2，短文为同义改写） ---------- */
+const FATES = [
+  {
+    id: "fate-cangfeng", tag: "藏", name: "藏锋·敛刃",
+    short: "星隐于云，锋藏于让。",
+    effect: "定局后 闪避 +5",
+    full: "刀不出鞘时，旁人只看见你的沉默；真正的锋口藏在你愿意放过哪一步。定局后闪避增加5点。"
+  },
+  {
+    id: "fate-pojun", tag: "破", name: "破军·劫锋",
+    short: "锋星先坠阵脚，追退只在回身前。",
+    effect: "定局后 外功 +5",
+    full: "刀锋先碰到阵脚；你必须在对手回身前决定要不要追进裂口。定局后外功增加5点。"
+  },
+  {
+    id: "fate-tianyi", tag: "医", name: "天医·回春",
+    short: "残息未断，星辉催你伸手。",
+    effect: "定局后 气血上限 +6",
+    full: "一口气尚未断尽，草木与血气都在催你伸手；救回来的不只是伤势，还有未说完的话。定局后气血上限增加6点。"
+  }
+];
+
+const stage = document.getElementById("stage");
+const wrap = document.getElementById("stage-wrap");
+const cardsEl = document.getElementById("cards");
+const svg = document.getElementById("constellation");
+const hintEl = document.getElementById("hint");
+const ctaEl = document.getElementById("cta");
+const overlay = document.getElementById("overlay");
+const modalText = document.getElementById("modal-text");
+const banner = document.getElementById("banner");
+const hudFate = document.getElementById("hud-fate");
+
+let selected = null;
+let confirmed = false;
+
+function fit() {
+  const W = 750, H = 1334;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const scale = vw <= W ? vw / W : Math.min(vw / W, (vh - 40) / H);
+  stage.style.transform = "scale(" + scale + ")";
+  wrap.style.width = W * scale + "px";
+  wrap.style.height = H * scale + "px";
+  document.getElementById("vp-label").textContent =
+    "场景切片：fate · 择定命格 ｜ 视口 " + vw + "×" + vh + " · 缩放 " + scale.toFixed(2);
+}
+window.addEventListener("resize", fit);
+
+function spawnSky() {
+  const sky = document.getElementById("sky");
+  for (let i = 0; i < 70; i++) {
+    const s = document.createElement("i");
+    s.className = "star";
+    const sz = 1 + Math.random() * 2.6;
+    s.style.width = sz + "px"; s.style.height = sz + "px";
+    s.style.left = Math.random() * 100 + "%";
+    s.style.top = Math.random() * 100 + "%";
+    s.style.animationDuration = (2 + Math.random() * 4) + "s";
+    s.style.animationDelay = (-Math.random() * 5) + "s";
+    sky.appendChild(s);
+  }
+  const ring = document.getElementById("astrolabe");
+  for (let i = 0; i < 24; i++) {
+    const t = document.createElement("i");
+    t.className = "tick";
+    t.style.transform = "rotate(" + (i * 15) + "deg)";
+    ring.appendChild(t);
+  }
+}
+
+function drawConstellation() {
+  const cards = cardsEl.querySelectorAll(".card");
+  const box = cardsEl.getBoundingClientRect();
+  const pts = [];
+  cards.forEach(c => {
+    const orb = c.querySelector(".orb").getBoundingClientRect();
+    pts.push({
+      id: c.getAttribute("data-fate-card"),
+      x: orb.left + orb.width / 2 - box.left,
+      y: orb.top + orb.height / 2 - box.top
+    });
+  });
+  const scale = stage.getBoundingClientRect().width / 750 || 1;
+  svg.setAttribute("viewBox", "0 0 " + box.width / scale + " " + box.height / scale);
+  svg.innerHTML = "";
+  for (let i = 0; i < pts.length - 1; i++) {
+    const l = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    l.setAttribute("x1", pts[i].x / scale); l.setAttribute("y1", pts[i].y / scale);
+    l.setAttribute("x2", pts[i + 1].x / scale); l.setAttribute("y2", pts[i + 1].y / scale);
+    if (selected && (pts[i].id === selected || pts[i + 1].id === selected)) l.classList.add("lit");
+    svg.appendChild(l);
+  }
+}
+
+function render() {
+  cardsEl.querySelectorAll(".card").forEach(n => n.remove());
+  FATES.forEach(f => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "card";
+    btn.setAttribute("data-fate-card", f.id);
+    btn.innerHTML =
+      '<span class="orb"><i>' + f.tag + "</i></span>" +
+      '<span class="body">' +
+        '<span class="name">' + f.name + "</span>" +
+        '<span class="short">' + f.short + "</span>" +
+        '<span class="effect">' + f.effect + "</span>" +
+        '<span class="more" data-expand>' + "观测星谶 ▾</span>" +
+        '<span class="full">' + f.full + "</span>" +
+      "</span>";
+    if (selected === f.id) btn.classList.add("selected");
+    if (confirmed) {
+      btn.classList.add("readonly");
+      btn.classList.toggle("dimmed", selected !== f.id);
+    }
+    btn.addEventListener("click", ev => {
+      if (ev.target.hasAttribute("data-expand")) {
+        ev.stopPropagation();
+        btn.classList.toggle("expanded");
+        ev.target.textContent = btn.classList.contains("expanded") ? "收起 ▴" : "观测星谶 ▾";
+        return;
+      }
+      if (confirmed) return;
+      selected = f.id;
+      update();
+    });
+    cardsEl.appendChild(btn);
+  });
+  requestAnimationFrame(drawConstellation);
+}
+
+function update() {
+  render();
+  const f = FATES.find(x => x.id === selected);
+  if (!selected) {
+    hintEl.textContent = "尚未选择命格";
+    hintEl.classList.remove("armed");
+    ctaEl.disabled = true;
+    ctaEl.textContent = "请先选择命格";
+  } else if (!confirmed) {
+    hintEl.textContent = "本次选择将在确认后锁定。";
+    hintEl.classList.add("armed");
+    ctaEl.disabled = false;
+    ctaEl.textContent = "确认" + f.name;
+  }
+}
+
+ctaEl.addEventListener("click", () => {
+  if (!selected || confirmed) return;
+  const f = FATES.find(x => x.id === selected);
+  modalText.textContent = "你将以“" + f.name + "”开始第一世。";
+  overlay.classList.add("open");
+});
+document.getElementById("modal-cancel").addEventListener("click", () => overlay.classList.remove("open"));
+overlay.addEventListener("click", ev => { if (ev.target === overlay) overlay.classList.remove("open"); });
+document.getElementById("modal-ok").addEventListener("click", () => {
+  const f = FATES.find(x => x.id === selected);
+  confirmed = true;
+  overlay.classList.remove("open");
+  hudFate.textContent = f.name;
+  hudFate.classList.add("fate-known");
+  banner.querySelector(".halo").textContent = "命星已定 · " + f.name;
+  banner.classList.add("show");
+  hintEl.textContent = "星轨已定，本世不可更改。";
+  hintEl.classList.remove("armed");
+  ctaEl.disabled = true;
+  ctaEl.textContent = "继续选择普攻技（完整流程稿）";
+  render();
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  selected = null; confirmed = false;
+  banner.classList.remove("show");
+  hudFate.textContent = "命格未定";
+  hudFate.classList.remove("fate-known");
+  update();
+});
+
+window.addEventListener("resize", () => requestAnimationFrame(drawConstellation));
+
+fit();
+spawnSky();
+update();
+</script>
+</body>
+</html>

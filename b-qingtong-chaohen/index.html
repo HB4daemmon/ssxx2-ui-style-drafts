@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Draft B · 青铜潮痕 — 择定命格</title>
+<style>
+  /* ============ Draft B 青铜潮痕 ============
+     视觉语言：风化青铜 / 铭文碑 / 潮水涨落留痕
+     画布：750×1334 逻辑面，JS 等比缩放适配 390×844 与桌面
+  */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --abyss: #0a1210;         /* 深水墨底 */
+    --bronze: #b08d57;        /* 老青铜 */
+    --bronze-dim: #7d6540;
+    --patina: #5f9e8f;        /* 铜绿 */
+    --patina-deep: #2e5b52;
+    --tide: #3f6b78;          /* 潮水 */
+    --bone: #e3dcc8;          /* 骨白铭文 */
+    --serif: "Songti SC", "STSong", "Noto Serif CJK SC", "SimSun", serif;
+  }
+  html, body { height: 100%; background: #060c0b; }
+  body { font-family: var(--serif); color: var(--bone); overflow: hidden; }
+
+  /* ---------- review 外壳（非玩家画布） ---------- */
+  #shell {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 50;
+    display: flex; align-items: center; gap: 12px;
+    padding: 6px 14px;
+    background: rgba(8, 16, 14, .92);
+    border-bottom: 1px solid rgba(95, 158, 143, .3);
+    font-size: 12px; letter-spacing: .08em; color: #9fb3a6;
+  }
+  #shell .name { color: var(--patina); font-weight: 700; }
+  #shell .badge { border: 1px solid rgba(95, 158, 143, .4); border-radius: 2px; padding: 1px 8px; white-space: nowrap; }
+  #shell .spacer { flex: 1; }
+  #shell button {
+    font-family: inherit; font-size: 12px; letter-spacing: .1em;
+    background: none; border: 1px solid rgba(176, 141, 87, .6); border-radius: 2px;
+    color: var(--bronze); padding: 3px 12px; cursor: pointer;
+  }
+  #shell button:hover { background: rgba(176, 141, 87, .15); }
+
+  /* ---------- 舞台适配 ---------- */
+  #viewport {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    background:
+      radial-gradient(1100px 600px at 50% 118%, rgba(63, 107, 120, .16), transparent 62%),
+      #060c0b;
+  }
+  #stage-wrap { position: relative; }
+  #stage {
+    position: absolute; top: 0; left: 0;
+    width: 750px; height: 1334px; transform-origin: top left; overflow: hidden;
+    background:
+      radial-gradient(800px 420px at 50% 112%, rgba(46, 91, 82, .35), transparent 65%),
+      linear-gradient(180deg, #0d1613 0%, var(--abyss) 45%, #081210 100%);
+    box-shadow: 0 0 90px rgba(0, 0, 0, .85);
+  }
+  /* 潮痕水平线组 */
+  .tidelines { position: absolute; left: 0; right: 0; bottom: 0; height: 420px; z-index: 2; pointer-events: none; overflow: hidden; }
+  .tidelines i {
+    position: absolute; left: -10%; right: -10%; height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(95, 158, 143, .35), transparent);
+    animation: tideDrift 9s ease-in-out infinite alternate;
+  }
+  @keyframes tideDrift { from { transform: translateX(-2.5%); } to { transform: translateX(2.5%); } }
+  /* 碑面水渍边框 */
+  #stage::before {
+    content: ""; position: absolute; inset: 14px; z-index: 3; pointer-events: none;
+    border: 1px solid rgba(176, 141, 87, .28);
+    outline: 1px solid rgba(95, 158, 143, .18); outline-offset: 6px;
+  }
+
+  /* ---------- 画布内容 ---------- */
+  .page { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; padding: 76px 60px 56px; }
+
+  .kicker { text-align: center; font-size: 19px; letter-spacing: .6em; text-indent: .6em; color: var(--patina); }
+  .kicker::before, .kicker::after { content: "◈"; font-size: 12px; vertical-align: 3px; color: rgba(95,158,143,.5); margin: 0 16px; }
+  h1.title {
+    margin-top: 20px; text-align: center; font-size: 62px; font-weight: 700;
+    letter-spacing: .3em; text-indent: .3em; color: var(--bone);
+    text-shadow: 0 2px 0 rgba(0,0,0,.6), 0 0 30px rgba(95, 158, 143, .25);
+  }
+  .hud { margin-top: 26px; display: flex; justify-content: center; gap: 0; font-size: 19px; letter-spacing: .14em; color: #b9c4b4; }
+  .hud span { padding: 6px 20px; border-top: 1px solid rgba(176,141,87,.4); border-bottom: 1px solid rgba(176,141,87,.4); }
+  .hud span + span { border-left: 1px solid rgba(176,141,87,.4); }
+  .hud .fate-known { color: var(--patina); text-shadow: 0 0 14px rgba(95,158,143,.5); }
+
+  .intro { margin: 30px auto 0; max-width: 560px; text-align: center; font-size: 21px; line-height: 1.9; color: #a8b8a9; letter-spacing: .06em; }
+
+  /* ---------- 命格铭文碑 ---------- */
+  .cards { margin-top: 42px; display: flex; flex-direction: column; gap: 26px; flex: 1; }
+  .card {
+    position: relative; flex: 1; min-height: 0; overflow: hidden;
+    display: flex; align-items: stretch;
+    cursor: pointer; user-select: none; text-align: left; font-family: inherit;
+    color: var(--bone);
+    background:
+      radial-gradient(150% 130% at 85% -10%, rgba(95, 158, 143, .14), transparent 50%),
+      linear-gradient(172deg, #1c2a25 0%, #14201c 55%, #0f1a17 100%);
+    border: 1px solid rgba(176, 141, 87, .45);
+    box-shadow: inset 0 0 40px rgba(0,0,0,.55), 0 10px 28px rgba(0,0,0,.5);
+    transition: transform .25s ease, border-color .25s ease, box-shadow .25s ease;
+  }
+  /* 回纹边（青铜雷纹抽象） */
+  .card::after {
+    content: ""; position: absolute; inset: 7px; pointer-events: none;
+    border: 1px solid rgba(176, 141, 87, .22);
+    background:
+      repeating-linear-gradient(90deg, rgba(176,141,87,.16) 0 2px, transparent 2px 14px) top / 100% 3px no-repeat,
+      repeating-linear-gradient(90deg, rgba(176,141,87,.16) 0 2px, transparent 2px 14px) bottom / 100% 3px no-repeat;
+  }
+  .card:hover { transform: translateY(-3px); border-color: rgba(176, 141, 87, .8); }
+  .card:focus-visible { outline: 3px solid var(--patina); outline-offset: 3px; }
+  /* 潮水涨起 = 选中 */
+  .card .tide {
+    position: absolute; left: 0; right: 0; bottom: 0; height: 0%;
+    background: linear-gradient(180deg, rgba(63, 107, 120, .05), rgba(46, 91, 82, .5));
+    border-top: 2px solid rgba(95, 158, 143, .8);
+    transition: height .5s cubic-bezier(.3, .8, .3, 1);
+    pointer-events: none;
+  }
+  .card.selected { border-color: var(--patina); box-shadow: inset 0 0 40px rgba(0,0,0,.4), 0 0 34px rgba(95, 158, 143, .35); }
+  .card.selected .tide { height: 100%; }
+
+  .card .tag { flex: 0 0 116px; display: flex; align-items: center; justify-content: center; border-right: 1px solid rgba(176,141,87,.3); }
+  .card .tag i {
+    font-style: normal; font-size: 44px; font-weight: 700;
+    width: 80px; height: 80px; display: flex; align-items: center; justify-content: center;
+    color: var(--bronze); border: 2px solid rgba(176, 141, 87, .6);
+    background: radial-gradient(circle at 35% 30%, rgba(176,141,87,.22), rgba(0,0,0,.3));
+    box-shadow: inset 0 2px 6px rgba(0,0,0,.6);
+  }
+  .card.selected .tag i { color: #d9f0e8; border-color: var(--patina); text-shadow: 0 0 16px rgba(95,158,143,.7); }
+  .card .body { flex: 1; padding: 22px 28px; display: flex; flex-direction: column; justify-content: center; position: relative; z-index: 2; }
+  .card .name { font-size: 34px; font-weight: 700; letter-spacing: .18em; }
+  .card .short { margin-top: 8px; font-size: 21px; line-height: 1.65; color: #b9c4b4; letter-spacing: .05em; }
+  .card .effect {
+    margin-top: 10px; align-self: flex-start; font-size: 19px; letter-spacing: .12em;
+    color: var(--bronze); border: 1px solid rgba(176,141,87,.5); padding: 3px 12px;
+  }
+  .card.selected .effect { color: #d9f0e8; border-color: rgba(95,158,143,.7); }
+  .card .more {
+    margin-top: 10px; font-size: 17px; color: #7d968a; letter-spacing: .14em;
+    background: none; border: none; font-family: inherit; cursor: pointer; text-align: left; padding: 0;
+  }
+  .card .more:hover { color: var(--patina); }
+  .card .full {
+    overflow: hidden; max-height: 0; opacity: 0;
+    transition: max-height .35s ease, opacity .35s ease, margin .35s ease;
+    font-size: 19px; line-height: 1.8; color: #cfe0d2;
+  }
+  .card.expanded .full { max-height: 160px; opacity: 1; margin-top: 10px; }
+  .card.readonly { cursor: default; }
+  .card.readonly:hover { transform: none; }
+  .card.dimmed { filter: brightness(.55) saturate(.6); }
+
+  /* ---------- 状态行与主 CTA ---------- */
+  .hint { margin-top: 26px; text-align: center; font-size: 20px; letter-spacing: .16em; color: #8fa398; min-height: 28px; }
+  .hint.armed { color: var(--patina); }
+  .cta {
+    margin-top: 18px; align-self: center; min-width: 460px; padding: 24px 40px;
+    font-family: inherit; font-size: 30px; font-weight: 700; letter-spacing: .32em; text-indent: .32em;
+    color: #0d1613; cursor: pointer;
+    background: linear-gradient(168deg, #c9a266, var(--bronze) 55%, #8a6c3e);
+    border: 1px solid rgba(230, 200, 150, .5); border-radius: 2px;
+    box-shadow: 0 8px 26px rgba(176, 141, 87, .3), inset 0 1px 0 rgba(255,255,255,.25);
+    transition: filter .2s ease, transform .15s ease, box-shadow .2s ease;
+  }
+  .cta:hover:not(:disabled) { filter: brightness(1.12); }
+  .cta:active:not(:disabled) { transform: translateY(2px); }
+  .cta:disabled {
+    cursor: not-allowed; background: #22302b; color: #5f7268;
+    border-color: rgba(95,158,143,.2); box-shadow: none;
+  }
+  .review-note { margin-top: 16px; text-align: center; font-size: 15px; letter-spacing: .1em; color: rgba(159, 179, 166, .45); }
+
+  /* ---------- 确认层（铸铭） ---------- */
+  .overlay {
+    position: absolute; inset: 0; z-index: 20; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(5, 10, 9, .8); backdrop-filter: blur(2px);
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    width: 600px; padding: 54px 50px 46px; text-align: center;
+    background: linear-gradient(175deg, #18241f, #0e1714);
+    border: 1px solid rgba(176, 141, 87, .55);
+    box-shadow: 0 30px 80px rgba(0,0,0,.85), inset 0 0 60px rgba(0,0,0,.5);
+    position: relative;
+  }
+  .modal::before, .modal::after {
+    content: ""; position: absolute; width: 12px; height: 12px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #d8b983, #6d552f);
+    box-shadow: inset 0 1px 2px rgba(0,0,0,.7);
+  }
+  .modal::before { top: 12px; left: 12px; }
+  .modal::after { top: 12px; right: 12px; }
+  .modal h2 { font-size: 33px; letter-spacing: .14em; color: var(--bronze); font-weight: 700; }
+  .modal p { margin-top: 22px; font-size: 23px; line-height: 1.9; color: var(--bone); letter-spacing: .05em; }
+  .modal .warn { margin-top: 14px; font-size: 18px; color: var(--patina); letter-spacing: .2em; }
+  .modal .row { margin-top: 38px; display: flex; gap: 22px; justify-content: center; }
+  .modal .row button {
+    font-family: inherit; font-size: 24px; letter-spacing: .22em; text-indent: .22em;
+    padding: 16px 34px; cursor: pointer; border-radius: 2px;
+  }
+  .btn-ghost { background: none; border: 1px solid rgba(176,141,87,.55); color: #b9c4b4; }
+  .btn-ghost:hover { background: rgba(176,141,87,.12); }
+  .btn-cast {
+    border: 1px solid rgba(230,200,150,.5); color: #0d1613; font-weight: 700;
+    background: linear-gradient(168deg, #c9a266, var(--bronze) 60%, #8a6c3e);
+    box-shadow: 0 6px 20px rgba(176,141,87,.35);
+  }
+  .btn-cast:hover { filter: brightness(1.12); }
+
+  /* 已定铭文牌 */
+  .confirmed-banner {
+    position: absolute; left: 0; right: 0; top: 300px; z-index: 15;
+    display: none; justify-content: center; pointer-events: none;
+  }
+  .confirmed-banner.show { display: flex; }
+  .confirmed-banner .plaque {
+    padding: 18px 46px; font-size: 30px; font-weight: 700; letter-spacing: .3em; text-indent: .3em;
+    color: #d9f0e8;
+    background: linear-gradient(172deg, #22463d, #12302a);
+    border: 2px solid var(--patina);
+    box-shadow: 0 14px 44px rgba(46, 91, 82, .55), inset 0 0 24px rgba(95,158,143,.25);
+    text-shadow: 0 0 18px rgba(95,158,143,.8);
+    animation: castIn .45s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  @keyframes castIn { from { transform: translateY(-26px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .tidelines i { animation: none; }
+    .card, .card .tide, .card .full, .cta, .confirmed-banner .plaque { animation: none; transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<div id="shell" data-review-shell>
+  <span class="name">Draft B · 青铜潮痕</span>
+  <span class="badge" data-prototype-badge>效果原型 · 本地固定内容</span>
+  <span class="badge" data-network-badge>不接接口 / 不读存档</span>
+  <span class="spacer"></span>
+  <span id="vp-label">场景切片：fate · 择定命格</span>
+  <button id="reset" type="button" data-review-reset-page>重置</button>
+</div>
+
+<div id="viewport">
+  <div id="stage-wrap">
+    <main id="stage" data-page-id="fate" aria-label="择定命格">
+      <div class="tidelines" id="tidelines"></div>
+      <div class="page">
+        <div class="kicker">封神 · 第一季 / 第一世</div>
+        <h1 class="title">择定命格</h1>
+        <div class="hud">
+          <span data-life-label>第一世</span>
+          <span data-difficulty-label>劫数 0</span>
+          <span id="hud-fate" data-fate-label>命格未定</span>
+        </div>
+        <p class="intro">潮水退去，碑上只留下三种刻法。命格一旦铸成铭文，这一世不再磨平。</p>
+
+        <div class="cards" id="cards"></div>
+
+        <div class="hint" id="hint" data-selection-hint>尚未选择命格</div>
+        <button class="cta" id="cta" type="button" data-primary-action disabled>请先选择命格</button>
+        <div class="review-note">本视觉稿仅演示「择定命格」场景切片 · 后续页面见完整流程稿</div>
+      </div>
+
+      <div class="confirmed-banner" id="banner"><div class="plaque" data-confirmed-seal></div></div>
+
+      <div class="overlay" id="overlay" data-confirm-modal="fate">
+        <div class="modal" role="dialog" aria-modal="true">
+          <h2>命格一经确认，本世不可更改</h2>
+          <p id="modal-text"></p>
+          <div class="warn">铭文入铜 · 潮水难磨</div>
+          <div class="row">
+            <button class="btn-ghost" id="modal-cancel" type="button">再想想</button>
+            <button class="btn-cast" id="modal-ok" type="button">确认命格</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+/* ---------- 本地 fixture（源自 page-element-catalog.md §2.1 / §3.2，短文为同义改写） ---------- */
+const FATES = [
+  {
+    id: "fate-cangfeng", tag: "藏", name: "藏锋·敛刃",
+    short: "刃藏于鞘，让一步见真锋。",
+    effect: "定局后 闪避 +5",
+    full: "刀不出鞘时，旁人只看见你的沉默；真正的锋口藏在你愿意放过哪一步。定局后闪避增加5点。"
+  },
+  {
+    id: "fate-pojun", tag: "破", name: "破军·劫锋",
+    short: "锋先触阵，回身之前定追退。",
+    effect: "定局后 外功 +5",
+    full: "刀锋先碰到阵脚；你必须在对手回身前决定要不要追进裂口。定局后外功增加5点。"
+  },
+  {
+    id: "fate-tianyi", tag: "医", name: "天医·回春",
+    short: "息未断尽，伸手救回未完之言。",
+    effect: "定局后 气血上限 +6",
+    full: "一口气尚未断尽，草木与血气都在催你伸手；救回来的不只是伤势，还有未说完的话。定局后气血上限增加6点。"
+  }
+];
+
+const stage = document.getElementById("stage");
+const wrap = document.getElementById("stage-wrap");
+const cardsEl = document.getElementById("cards");
+const hintEl = document.getElementById("hint");
+const ctaEl = document.getElementById("cta");
+const overlay = document.getElementById("overlay");
+const modalText = document.getElementById("modal-text");
+const banner = document.getElementById("banner");
+const hudFate = document.getElementById("hud-fate");
+
+let selected = null;
+let confirmed = false;
+
+function fit() {
+  const W = 750, H = 1334;
+  const vw = window.innerWidth, vh = window.innerHeight;
+  const scale = vw <= W ? vw / W : Math.min(vw / W, (vh - 40) / H);
+  stage.style.transform = "scale(" + scale + ")";
+  wrap.style.width = W * scale + "px";
+  wrap.style.height = H * scale + "px";
+  document.getElementById("vp-label").textContent =
+    "场景切片：fate · 择定命格 ｜ 视口 " + vw + "×" + vh + " · 缩放 " + scale.toFixed(2);
+}
+window.addEventListener("resize", fit);
+
+function spawnTidelines() {
+  const box = document.getElementById("tidelines");
+  for (let i = 0; i < 9; i++) {
+    const l = document.createElement("i");
+    l.style.bottom = (i * 46 + Math.random() * 14) + "px";
+    l.style.opacity = (0.25 + Math.random() * 0.5).toFixed(2);
+    l.style.animationDuration = (7 + Math.random() * 6) + "s";
+    l.style.animationDelay = (-Math.random() * 8) + "s";
+    box.appendChild(l);
+  }
+}
+
+function render() {
+  cardsEl.innerHTML = "";
+  FATES.forEach(f => {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "card";
+    btn.setAttribute("data-fate-card", f.id);
+    btn.innerHTML =
+      '<span class="tide"></span>' +
+      '<span class="tag"><i>' + f.tag + "</i></span>" +
+      '<span class="body">' +
+        '<span class="name">' + f.name + "</span>" +
+        '<span class="short">' + f.short + "</span>" +
+        '<span class="effect">' + f.effect + "</span>" +
+        '<span class="more" data-expand>' + "辨读铭文 ▾</span>" +
+        '<span class="full">' + f.full + "</span>" +
+      "</span>";
+    if (selected === f.id) btn.classList.add("selected");
+    if (confirmed) {
+      btn.classList.add("readonly");
+      btn.classList.toggle("dimmed", selected !== f.id);
+    }
+    btn.addEventListener("click", ev => {
+      if (ev.target.hasAttribute("data-expand")) {
+        ev.stopPropagation();
+        btn.classList.toggle("expanded");
+        ev.target.textContent = btn.classList.contains("expanded") ? "收起 ▴" : "辨读铭文 ▾";
+        return;
+      }
+      if (confirmed) return;
+      selected = f.id;
+      update();
+    });
+    cardsEl.appendChild(btn);
+  });
+}
+
+function update() {
+  render();
+  const f = FATES.find(x => x.id === selected);
+  if (!selected) {
+    hintEl.textContent = "尚未选择命格";
+    hintEl.classList.remove("armed");
+    ctaEl.disabled = true;
+    ctaEl.textContent = "请先选择命格";
+  } else if (!confirmed) {
+    hintEl.textContent = "本次选择将在确认后锁定。";
+    hintEl.classList.add("armed");
+    ctaEl.disabled = false;
+    ctaEl.textContent = "确认" + f.name;
+  }
+}
+
+ctaEl.addEventListener("click", () => {
+  if (!selected || confirmed) return;
+  const f = FATES.find(x => x.id === selected);
+  modalText.textContent = "你将以“" + f.name + "”开始第一世。";
+  overlay.classList.add("open");
+});
+document.getElementById("modal-cancel").addEventListener("click", () => overlay.classList.remove("open"));
+overlay.addEventListener("click", ev => { if (ev.target === overlay) overlay.classList.remove("open"); });
+document.getElementById("modal-ok").addEventListener("click", () => {
+  const f = FATES.find(x => x.id === selected);
+  confirmed = true;
+  overlay.classList.remove("open");
+  hudFate.textContent = f.name;
+  hudFate.classList.add("fate-known");
+  banner.querySelector(".plaque").textContent = "命格已铸 · " + f.name;
+  banner.classList.add("show");
+  hintEl.textContent = "铭文已入铜，本世不可更改。";
+  hintEl.classList.remove("armed");
+  ctaEl.disabled = true;
+  ctaEl.textContent = "继续选择普攻技（完整流程稿）";
+  render();
+});
+
+document.getElementById("reset").addEventListener("click", () => {
+  selected = null; confirmed = false;
+  banner.classList.remove("show");
+  hudFate.textContent = "命格未定";
+  hudFate.classList.remove("fate-known");
+  update();
+});
+
+fit();
+spawnTidelines();
+update();
+</script>
+</body>
+</html>
