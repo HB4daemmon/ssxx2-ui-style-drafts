@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>v2 · 邸报排版 — 字体与组件</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='1' fill='%23b42318'/%3E%3Crect x='3' y='4' width='10' height='1.2' fill='%23f3ead4'/%3E%3Crect x='3' y='7.4' width='10' height='1.2' fill='%23f3ead4'/%3E%3Crect x='3' y='10.8' width='6' height='1.2' fill='%23f3ead4'/%3E%3C/svg%3E">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --paper: #f3ead4;
+    --paper-2: #e9dcb8;
+    --paper-3: #fff8e8;
+    --ink: #1c1612;
+    --ink-2: #3a322b;
+    --ink-3: #6a5c50;
+    --rule: #b42318;
+    --rule-soft: #c45a4a;
+    --stamp: #9c1c14;
+    --ok: #2f5d3a;
+    --err: #8c1a12;
+    --disabled: #9a8d7e;
+    --serif: ui-serif, "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", "Source Han Serif", Georgia, "Times New Roman", serif;
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    --tap: 80px;
+  }
+  html, body {
+    background: #d8cba8;
+    color: var(--ink);
+    font-family: var(--serif);
+    overflow-x: hidden;
+  }
+  body { min-height: 100%; }
+  button, input, select { font-family: inherit; }
+
+  #shell {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+    padding: 8px 12px;
+    background: #f7f0dc;
+    border-bottom: 3px double var(--ink);
+    font-size: 12px; letter-spacing: 0.04em;
+  }
+  #shell .brand { font-weight: 700; color: var(--rule); letter-spacing: 0.18em; }
+  #shell .badge {
+    border: 1px solid var(--ink); padding: 2px 8px; background: var(--paper-3);
+    white-space: nowrap;
+  }
+  #shell .spacer { flex: 1 1 40px; }
+  #shell button {
+    min-height: 32px; padding: 4px 10px; cursor: pointer;
+    background: var(--paper); border: 1px solid var(--ink); color: var(--ink);
+  }
+  #shell button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+  #shell .readout { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+  #stage-host {
+    width: 100%; display: flex; justify-content: center;
+    padding: 16px 0 48px;
+    overflow-x: hidden;
+  }
+  #stage-sizer { position: relative; overflow: hidden; max-width: 100%; }
+  #stage {
+    width: 750px;
+    transform-origin: top left;
+    background:
+      repeating-linear-gradient(0deg, transparent, transparent 27px, rgba(28,22,18,0.035) 28px),
+      linear-gradient(180deg, var(--paper-3) 0%, var(--paper) 120px, var(--paper) 100%);
+    color: var(--ink);
+    padding: 28px 32px 56px;
+    border: 1px solid var(--ink);
+  }
+
+  .masthead {
+    text-align: center; border-bottom: 4px double var(--rule); padding-bottom: 14px; margin-bottom: 22px;
+  }
+  .masthead .issue {
+    font-size: 13px; letter-spacing: 0.42em; color: var(--rule); font-weight: 700;
+  }
+  .masthead h1 {
+    font-size: 52px; line-height: 1.12; font-weight: 700; letter-spacing: 0.18em;
+    margin: 8px 0 6px;
+  }
+  .masthead .sub {
+    font-size: 15px; letter-spacing: 0.28em; color: var(--ink-2);
+  }
+  .colophon {
+    display: flex; justify-content: space-between; font-size: 12px;
+    border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink);
+    padding: 6px 0; margin-top: 10px; font-variant-numeric: tabular-nums;
+  }
+
+  .sec { margin: 28px 0 8px; }
+  .sec-kicker {
+    font-size: 12px; letter-spacing: 0.38em; color: var(--rule); font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .sec h2 {
+    font-size: 28px; line-height: 1.25; letter-spacing: 0.08em;
+    border-bottom: 2px solid var(--ink); padding-bottom: 6px; margin-bottom: 14px;
+  }
+  .note { font-size: 13px; color: var(--ink-2); line-height: 1.7; margin-bottom: 12px; }
+
+  .type-grid { display: grid; gap: 14px; }
+  .type-row {
+    display: grid; grid-template-columns: 92px 1fr; gap: 12px; align-items: start;
+    border-bottom: 1px dotted var(--ink-3); padding-bottom: 10px;
+  }
+  .type-row .lvl {
+    font-size: 11px; letter-spacing: 0.2em; color: var(--ink-3); padding-top: 8px;
+  }
+  .display { font-size: 40px; line-height: 1.2; letter-spacing: 0.14em; font-weight: 700; }
+  .title { font-size: 26px; line-height: 1.3; letter-spacing: 0.06em; font-weight: 700; }
+  .body { font-size: 16px; line-height: 1.85; letter-spacing: 0.02em; font-weight: 400; }
+  .caption { font-size: 12px; line-height: 1.55; letter-spacing: 0.08em; color: var(--ink-2); }
+  .latin { font-style: italic; font-size: 16px; line-height: 1.6; }
+  .nums {
+    font-variant-numeric: tabular-nums; font-family: var(--mono);
+    font-size: 20px; letter-spacing: 0.04em;
+  }
+  .wrap-box {
+    border: 1px solid var(--ink); padding: 10px 12px; background: var(--paper-3);
+    font-size: 15px; line-height: 1.75;
+  }
+  .trunc {
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    border-bottom: 1px solid var(--ink); padding: 4px 0; max-width: 100%;
+  }
+  .stack-print {
+    font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--ink-2);
+    background: var(--paper-2); padding: 10px 12px; border-left: 4px solid var(--rule);
+    word-break: break-all;
+  }
+  .w-track { letter-spacing: 0.22em; }
+  .w-tight { letter-spacing: 0; font-weight: 700; }
+  .lh-loose { line-height: 2.05; }
+
+  .board { display: grid; gap: 18px; }
+  .cat {
+    border: 1px solid var(--ink); background: var(--paper-3); padding: 12px 14px 16px;
+  }
+  .cat h3 {
+    font-size: 14px; letter-spacing: 0.24em; border-bottom: 1px solid var(--rule);
+    padding-bottom: 6px; margin-bottom: 12px;
+  }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .hint { font-size: 12px; color: var(--ink-3); width: 100%; }
+
+  .btn {
+    min-height: var(--tap); min-width: 120px; padding: 12px 18px;
+    border: 1px solid var(--ink); background: var(--paper); color: var(--ink);
+    font-size: 16px; letter-spacing: 0.08em; cursor: pointer;
+  }
+  .btn-primary { background: var(--ink); color: var(--paper); }
+  .btn-ghost { background: transparent; border-style: dashed; }
+  .btn-danger { border-color: var(--rule); color: var(--rule); background: #f8e4dc; }
+  .btn[disabled], .btn.is-disabled {
+    background: #e6dcc4; color: var(--disabled); border-color: var(--disabled);
+    cursor: not-allowed;
+  }
+  .btn.is-pressed { box-shadow: inset 3px 3px 0 var(--ink); background: var(--paper-2); }
+  .btn:hover:not([disabled]):not(.is-disabled) { background: #efe0bc; }
+  .btn-primary:hover:not([disabled]) { background: #2a221c; }
+
+  .seg { display: flex; border: 1px solid var(--ink); }
+  .seg button {
+    min-height: var(--tap); flex: 1; border: 0; border-right: 1px solid var(--ink);
+    background: var(--paper); cursor: pointer; font-size: 15px; letter-spacing: 0.06em;
+  }
+  .seg button:last-child { border-right: 0; }
+  .seg button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+
+  .chip {
+    display: inline-flex; align-items: center; min-height: 36px; padding: 4px 12px;
+    border: 1px solid var(--ink); font-size: 13px; letter-spacing: 0.08em;
+    background: var(--paper);
+  }
+  .chip-stamp {
+    border: 2px solid var(--stamp); color: var(--stamp); border-radius: 50%;
+    width: 72px; height: 72px; justify-content: center; transform: rotate(-8deg);
+    font-weight: 700; letter-spacing: 0.12em; background: rgba(180,35,24,0.04);
+  }
+  .chip.is-on { background: var(--ink); color: var(--paper); }
+
+  .notice {
+    border: 2px solid var(--ink); padding: 12px 14px; position: relative;
+    background: repeating-linear-gradient(180deg, var(--paper-3), var(--paper-3) 27px, #efe6cf 28px);
+  }
+  .notice .stamp-abs {
+    position: absolute; right: 10px; top: 8px; width: 64px; height: 64px;
+    border: 2px solid var(--stamp); color: var(--stamp); border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 13px; transform: rotate(-12deg); background: rgba(243,234,212,0.85);
+  }
+  .notice h4 { font-size: 18px; letter-spacing: 0.1em; margin-bottom: 6px; padding-right: 72px; }
+  .notice p { font-size: 14px; line-height: 1.7; }
+
+  .route { border-left: 3px solid var(--ink); padding-left: 12px; }
+  .route li {
+    list-style: none; min-height: 44px; display: flex; justify-content: space-between;
+    align-items: center; border-bottom: 1px dotted var(--ink-3); font-size: 15px;
+  }
+  .route .done { color: var(--ok); }
+  .route .now { font-weight: 700; }
+
+  .meter { height: 18px; border: 1px solid var(--ink); background: var(--paper); position: relative; }
+  .meter > i { display: block; height: 100%; background: var(--ink); width: 58%; }
+  .meter-label {
+    display: flex; justify-content: space-between; font-variant-numeric: tabular-nums;
+    font-family: var(--mono); font-size: 13px; margin-bottom: 4px;
+  }
+
+  .field { display: grid; gap: 6px; width: 100%; }
+  .field label { font-size: 12px; letter-spacing: 0.18em; }
+  .field input, .field select {
+    min-height: var(--tap); border: 1px solid var(--ink); background: var(--paper-3);
+    padding: 0 12px; font-size: 16px;
+  }
+  .toggle {
+    width: 88px; height: var(--tap); border: 1px solid var(--ink); background: var(--paper);
+    position: relative; cursor: pointer; padding: 6px;
+  }
+  .toggle i {
+    display: block; width: 36px; height: calc(var(--tap) - 14px); background: var(--ink);
+  }
+  .toggle[aria-pressed="true"] { background: #ead8b0; }
+  .toggle[aria-pressed="true"] i { margin-left: auto; background: var(--rule); }
+
+  .toast {
+    border: 1px solid var(--ink); background: var(--paper-2); padding: 12px 14px;
+    font-size: 14px; min-height: 52px; display: flex; align-items: center; gap: 10px;
+  }
+  .toast b { color: var(--rule); }
+
+  .empty, .error-box {
+    min-height: 120px; border: 1px dashed var(--ink); display: flex;
+    flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+    font-size: 14px; color: var(--ink-2);
+  }
+  .error-box { border-color: var(--rule); color: var(--err); background: #f8ece6; }
+
+  hr.rule { border: 0; border-top: 1px solid var(--ink); margin: 8px 0; }
+  hr.rule-red { border: 0; border-top: 2px solid var(--rule); margin: 8px 0; }
+
+  .matrix {
+    display: grid; gap: 12px; border: 2px solid var(--ink); padding: 14px;
+    background: var(--paper);
+  }
+  .matrix-live {
+    min-height: 140px; border: 1px solid var(--ink); padding: 12px; background: var(--paper-3);
+  }
+  .matrix-live.is-selected { outline: 3px solid var(--rule); outline-offset: -3px; }
+  .matrix-live.is-pressed { box-shadow: inset 0 4px 0 var(--ink); }
+  .matrix-live.is-disabled { opacity: 0.45; pointer-events: none; }
+  .matrix-live.is-confirmed { background: #e7efe4; border-color: var(--ok); }
+  .matrix-live.is-error { background: #f8ece6; border-color: var(--rule); }
+  .status-line { font-family: var(--mono); font-size: 13px; font-variant-numeric: tabular-nums; }
+
+  .fate-list { display: grid; gap: 10px; }
+  .fate {
+    min-height: 108px; border: 1px solid var(--ink); padding: 12px 14px; text-align: left;
+    background: var(--paper-3); cursor: pointer; width: 100%;
+  }
+  .fate[aria-pressed="true"] { background: #f4e2d4; border-width: 2px; border-color: var(--rule); }
+  .fate .nm { font-size: 20px; letter-spacing: 0.12em; font-weight: 700; }
+  .fate .fx { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 14px; color: var(--rule); }
+  .fate .bd { font-size: 13px; line-height: 1.65; color: var(--ink-2); margin-top: 4px; }
+  .cta[disabled] { opacity: 0.4; cursor: not-allowed; }
+
+  .overlay {
+    display: none; position: fixed; inset: 0; z-index: 80;
+    background: rgba(28,22,18,0.45); align-items: center; justify-content: center;
+  }
+  .overlay.open { display: flex; }
+  .modal {
+    width: min(520px, calc(100vw - 24px)); background: var(--paper);
+    border: 3px double var(--ink); padding: 22px 20px;
+  }
+  .modal h3 { font-size: 22px; letter-spacing: 0.08em; margin-bottom: 10px; }
+  .modal p { font-size: 15px; line-height: 1.75; margin-bottom: 16px; }
+  .modal-actions { display: flex; gap: 10px; }
+  .modal-actions .btn { flex: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div id="shell" data-review-shell>
+    <span class="brand">邸报排版 v2</span>
+    <span class="badge" data-prototype-badge>效果原型 · 本地固定内容</span>
+    <span class="badge" data-network-badge>不接接口 / 不读存档</span>
+    <span class="spacer"></span>
+    <button type="button" data-viewport="390" aria-pressed="false">390×844</button>
+    <button type="button" data-viewport="750" aria-pressed="true">750×1334</button>
+    <button type="button" data-viewport="desktop" aria-pressed="false">桌面适配</button>
+    <span class="readout" id="vp-readout">750×1334</span>
+    <span class="readout" id="scale-readout">scale 1.000</span>
+  </div>
+
+  <div id="stage-host">
+    <div id="stage-sizer">
+      <div id="stage">
+        <header class="masthead">
+          <div class="issue">封神 · 第一季 · 第〇号</div>
+          <h1>朝歌邸报</h1>
+          <div class="sub">字体标本 · 控件版式 · 择定命格</div>
+          <div class="colophon">
+            <span>第一世 · 劫数 0</span>
+            <span>刊号 0001</span>
+            <span>不发余烬、不焚卷面</span>
+          </div>
+        </header>
+
+        <section class="sec" id="type">
+          <div class="sec-kicker">A · SPECIMEN</div>
+          <h2>字体标本</h2>
+          <p class="note">排版优先于氛围。本页用宣纸底与朱线做分隔，不铺烧焦卷轴或余烬粒子。</p>
+          <div class="type-grid">
+            <div class="type-row">
+              <div class="lvl">DISPLAY<br>40 / 1.20 / 0.14em / 700</div>
+              <div class="display">择定命格</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">TITLE<br>26 / 1.30 / 0.06em / 700</div>
+              <div class="title">命格将陪你走完这一世</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">BODY<br>16 / 1.85 / 0.02em / 400</div>
+              <div class="body lh-loose">刀锋先碰到阵脚；你必须在对手回身前决定要不要追进裂口。定局后外功增加 5 点。</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">CAPTION<br>12 / 1.55 / 0.08em</div>
+              <div class="caption w-track">固定演示：第一世 · 劫数 0 · 破军·劫锋</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">LATIN</div>
+              <div class="latin">LifeRun Gazette — Fate offer, not a cinematic landing.</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">NUMERALS</div>
+              <div class="nums">58 / 100 &nbsp; +20 &nbsp; 67.32% &nbsp; 40 → 20</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">WEIGHT / TRACK</div>
+              <div>
+                <span class="w-tight">本世不可更改</span>
+                &nbsp;·&nbsp;
+                <span class="w-track">朝歌焚册余烬</span>
+              </div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">WRAP</div>
+              <div class="wrap-box">一口气尚未断尽，草木与血气都在催你伸手；救回来的不只是伤势，还有未说完的话。定局后气血上限增加 6 点。</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">ELLIPSIS</div>
+              <div class="trunc">刀不出鞘时，旁人只看见你的沉默；真正的锋口藏在你愿意放过哪一步。定局后闪避增加 5 点。</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">STACK</div>
+              <pre class="stack-print">font-family: ui-serif, "Songti SC", "STSong", "Noto Serif CJK SC", "Source Han Serif SC", "Source Han Serif", Georgia, "Times New Roman", serif</pre>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec" id="board">
+          <div class="sec-kicker">B · COMPONENTS</div>
+          <h2>组件板 · 邸报刊式</h2>
+          <div class="board">
+            <div class="cat">
+              <h3>01 按钮 BUTTONS</h3>
+              <div class="row">
+                <button class="btn btn-primary" type="button">主按钮</button>
+                <button class="btn" type="button">次按钮</button>
+                <button class="btn btn-ghost" type="button">虚线稿</button>
+                <button class="btn btn-danger" type="button">驳回</button>
+                <button class="btn is-pressed" type="button">按下态</button>
+                <button class="btn is-disabled" type="button" disabled>禁用</button>
+              </div>
+              <p class="hint">按下/禁用不依赖悬停。主色为墨，危险为朱，不用余烬渐变。</p>
+            </div>
+
+            <div class="cat">
+              <h3>02 分段 SEGMENTED</h3>
+              <div class="seg" role="tablist">
+                <button type="button" aria-selected="true" data-seg="notice">邸抄</button>
+                <button type="button" aria-selected="false" data-seg="form">表册</button>
+                <button type="button" aria-selected="false" data-seg="stamp">印鉴</button>
+              </div>
+              <p class="hint" id="seg-hint">当前栏：邸抄</p>
+            </div>
+
+            <div class="cat">
+              <h3>03 印记 CHIPS / BADGES</h3>
+              <div class="row">
+                <span class="chip">劫数 0</span>
+                <span class="chip is-on">已选</span>
+                <span class="chip">未解锁</span>
+                <span class="chip-stamp">已核</span>
+              </div>
+            </div>
+
+            <div class="cat">
+              <h3>04 告示 CARD / NOTICE</h3>
+              <article class="notice">
+                <div class="stamp-abs">官印</div>
+                <h4>宫库封门</h4>
+                <p>火巷外仍可通行。本条为版式示意，不是独立场景页。</p>
+              </article>
+            </div>
+
+            <div class="cat">
+              <h3>05 名录 LIST / ROUTE</h3>
+              <ol class="route">
+                <li><span>入劫</span><span class="done">已过</span></li>
+                <li class="now"><span>择定命格</span><span>当前</span></li>
+                <li><span>井栏修整</span><span>尚未抵达</span></li>
+              </ol>
+            </div>
+
+            <div class="cat">
+              <h3>06 进度 BARS</h3>
+              <div class="meter-label"><span>气血</span><span>58 / 100</span></div>
+              <div class="meter" aria-label="气血 58 / 100"><i></i></div>
+            </div>
+
+            <div class="cat">
+              <h3>07 表单 INPUT / TOGGLE</h3>
+              <div class="field">
+                <label for="g-select">栏目</label>
+                <select id="g-select">
+                  <option>命格栏</option>
+                  <option>战报栏</option>
+                  <option>坊市栏</option>
+                </select>
+              </div>
+              <div class="row" style="margin-top:10px">
+                <button class="toggle" type="button" aria-pressed="false" id="g-toggle"><i></i></button>
+                <span class="caption" id="g-toggle-lab">夜间加印：关</span>
+              </div>
+            </div>
+
+            <div class="cat">
+              <h3>08 提示 TOAST</h3>
+              <div class="toast" data-toast><b>邸抄</b> 本次选择将在确认后锁定。</div>
+            </div>
+
+            <div class="cat">
+              <h3>09 分隔 DIVIDER</h3>
+              <hr class="rule">
+              <hr class="rule-red">
+              <p class="caption">墨线用于栏目，朱线用于不可逆条款。</p>
+            </div>
+
+            <div class="cat">
+              <h3>10 空态 / 错误</h3>
+              <div class="row" style="align-items:stretch">
+                <div class="empty" style="flex:1">本栏暂无邸抄</div>
+                <div class="error-box" style="flex:1">印鉴不符，请改选后再核</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec" id="matrix">
+          <div class="sec-kicker">C · STATE MATRIX</div>
+          <h2>交互状态矩阵</h2>
+          <div class="matrix">
+            <p class="note">点击下列状态，观察告示卡与主按钮的可见变化。移动端无悬停，故按下/选中/禁用均静态可见。</p>
+            <div class="row">
+              <button class="btn" type="button" data-mx="selected">选中</button>
+              <button class="btn is-pressed" type="button" data-mx="pressed">按下</button>
+              <button class="btn" type="button" data-mx="disabled">禁用</button>
+              <button class="btn" type="button" data-mx="confirmed">已确认</button>
+              <button class="btn btn-danger" type="button" data-mx="error">错误</button>
+              <button class="btn btn-primary" type="button" id="mx-confirm-open">打开不可逆确认</button>
+            </div>
+            <div class="matrix-live" id="mx-live">
+              <div class="nm" style="font-size:20px;letter-spacing:.1em;font-weight:700">破军·劫锋</div>
+              <div class="fx nums" style="font-size:14px;color:var(--rule)">外功 +5</div>
+              <p class="bd body" style="font-size:14px;margin-top:6px">刀锋先碰到阵脚。确认后本世不可更改。</p>
+            </div>
+            <div class="status-line" id="mx-status">状态：default</div>
+          </div>
+        </section>
+
+        <section class="sec" id="gameplay">
+          <div class="sec-kicker">D · GAMEPLAY SLICE</div>
+          <h2>择定命格 · 三选一</h2>
+          <p class="note" data-selection-hint id="fate-hint">尚未选择命格。主按钮在选定前保持禁用。</p>
+          <div class="fate-list">
+            <button class="fate" type="button" data-fate-card="fate-cangfeng" aria-pressed="false">
+              <div class="nm">藏锋·敛刃</div>
+              <div class="fx">闪避 +5</div>
+              <div class="bd">刀不出鞘时，旁人只看见你的沉默；真正的锋口藏在你愿意放过哪一步。</div>
+            </button>
+            <button class="fate" type="button" data-fate-card="fate-pojun" aria-pressed="false">
+              <div class="nm">破军·劫锋</div>
+              <div class="fx">外功 +5</div>
+              <div class="bd">刀锋先碰到阵脚；你必须在对手回身前决定要不要追进裂口。</div>
+            </button>
+            <button class="fate" type="button" data-fate-card="fate-tianyi" aria-pressed="false">
+              <div class="nm">天医·回春</div>
+              <div class="fx">气血上限 +6</div>
+              <div class="bd">一口气尚未断尽，草木与血气都在催你伸手；救回来的不只是伤势，还有未说完的话。</div>
+            </button>
+          </div>
+          <div class="row" style="margin-top:14px">
+            <button class="btn btn-primary cta" type="button" id="fate-cta" data-primary-action disabled>请先选择命格</button>
+          </div>
+          <p class="caption" id="fate-seal" hidden>命格已定 · 破军·劫锋</p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="overlay" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal">
+      <h3 id="modal-title">命格一经确认，本世不可更改</h3>
+      <p id="modal-body">你将以所选命格开始第一世。此确认不可撤回。</p>
+      <div class="modal-actions">
+        <button class="btn" type="button" id="modal-cancel">再想想</button>
+        <button class="btn btn-primary" type="button" id="modal-ok">确认</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  var STAGE_W = 750;
+  var mode = "750";
+  var stage = document.getElementById("stage");
+  var sizer = document.getElementById("stage-sizer");
+  var overlay = document.getElementById("overlay");
+  var modalTitle = document.getElementById("modal-title");
+  var modalBody = document.getElementById("modal-body");
+  var modalOk = document.getElementById("modal-ok");
+  var modalMode = "fate";
+  var selectedFate = null;
+  var fateLocked = false;
+  var fateNames = {
+    "fate-cangfeng": "藏锋·敛刃",
+    "fate-pojun": "破军·劫锋",
+    "fate-tianyi": "天医·回春"
+  };
+
+  function applyScale() {
+    var shellH = document.getElementById("shell").offsetHeight || 0;
+    var vw = document.documentElement.clientWidth;
+    var scale = 1;
+    if (mode === "390") {
+      scale = Math.min(390 / STAGE_W, vw / STAGE_W);
+    } else if (mode === "750") {
+      scale = Math.min(1, vw / STAGE_W);
+    } else {
+      scale = Math.min(1, Math.max(0.4, (vw - 48) / STAGE_W));
+    }
+    stage.style.transform = "scale(" + scale + ")";
+    var contentH = stage.scrollHeight;
+    sizer.style.width = Math.floor(STAGE_W * scale) + "px";
+    sizer.style.height = Math.floor(contentH * scale) + "px";
+    document.getElementById("vp-readout").textContent =
+      mode === "390" ? "390×844" : mode === "750" ? "750×1334" : "桌面适配";
+    document.getElementById("scale-readout").textContent = "scale " + scale.toFixed(3);
+    document.documentElement.style.overflowX = "hidden";
+    document.body.style.overflowX = "hidden";
+  }
+
+  document.querySelectorAll("#shell [data-viewport]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      mode = btn.getAttribute("data-viewport");
+      document.querySelectorAll("#shell [data-viewport]").forEach(function (b) {
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+      applyScale();
+    });
+  });
+  window.addEventListener("resize", applyScale);
+  if (window.ResizeObserver) {
+    new ResizeObserver(applyScale).observe(stage);
+  }
+
+  document.querySelectorAll("[data-seg]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("[data-seg]").forEach(function (b) {
+        b.setAttribute("aria-selected", b === btn ? "true" : "false");
+      });
+      var map = { notice: "邸抄", form: "表册", stamp: "印鉴" };
+      document.getElementById("seg-hint").textContent = "当前栏：" + map[btn.getAttribute("data-seg")];
+    });
+  });
+
+  var tog = document.getElementById("g-toggle");
+  tog.addEventListener("click", function () {
+    var on = tog.getAttribute("aria-pressed") !== "true";
+    tog.setAttribute("aria-pressed", on ? "true" : "false");
+    document.getElementById("g-toggle-lab").textContent = on ? "夜间加印：开" : "夜间加印：关";
+  });
+
+  var live = document.getElementById("mx-live");
+  var mxStatus = document.getElementById("mx-status");
+  document.querySelectorAll("[data-mx]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var st = btn.getAttribute("data-mx");
+      live.className = "matrix-live is-" + st;
+      mxStatus.textContent = "状态：" + st;
+    });
+  });
+
+  function openOverlay(kind) {
+    modalMode = kind;
+    overlay.classList.add("open");
+    if (kind === "matrix") {
+      modalTitle.textContent = "此操作确认后不可撤回";
+      modalBody.textContent = "矩阵演示：确认将把样本标为已确认。本世规则仍以命格切片为准。";
+      modalOk.textContent = "确认";
+    } else {
+      var name = fateNames[selectedFate] || "未选择";
+      modalTitle.textContent = "命格一经确认，本世不可更改";
+      modalBody.textContent = "你将以“" + name + "”开始第一世。";
+      modalOk.textContent = "确认命格";
+    }
+  }
+  function closeOverlay() { overlay.classList.remove("open"); }
+
+  document.getElementById("mx-confirm-open").addEventListener("click", function () {
+    openOverlay("matrix");
+  });
+  document.getElementById("modal-cancel").addEventListener("click", closeOverlay);
+  overlay.addEventListener("click", function (ev) {
+    if (ev.target === overlay) closeOverlay();
+  });
+  modalOk.addEventListener("click", function () {
+    if (modalMode === "matrix") {
+      live.className = "matrix-live is-confirmed";
+      mxStatus.textContent = "状态：confirmed";
+    } else if (selectedFate) {
+      fateLocked = true;
+      document.getElementById("fate-hint").textContent = "本次选择已锁定。";
+      document.getElementById("fate-cta").disabled = true;
+      document.getElementById("fate-cta").textContent = "命格已定";
+      document.getElementById("fate-seal").hidden = false;
+      document.querySelectorAll("[data-fate-card]").forEach(function (c) {
+        c.disabled = true;
+      });
+    }
+    closeOverlay();
+  });
+
+  document.querySelectorAll("[data-fate-card]").forEach(function (card) {
+    card.addEventListener("click", function () {
+      if (fateLocked) return;
+      selectedFate = card.getAttribute("data-fate-card");
+      document.querySelectorAll("[data-fate-card]").forEach(function (c) {
+        c.setAttribute("aria-pressed", c === card ? "true" : "false");
+      });
+      var name = fateNames[selectedFate];
+      var cta = document.getElementById("fate-cta");
+      cta.disabled = false;
+      cta.textContent = "确认" + name;
+      document.getElementById("fate-hint").textContent = "本次选择将在确认后锁定。";
+    });
+  });
+  document.getElementById("fate-cta").addEventListener("click", function () {
+    if (!selectedFate || fateLocked) return;
+    openOverlay("fate");
+  });
+
+  applyScale();
+})();
+</script>
+</body>
+</html>

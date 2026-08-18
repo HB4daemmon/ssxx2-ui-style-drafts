@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>v2 · 玉签组件库 — 字体与组件</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='4' fill='%23d7e5d8'/%3E%3Crect x='3' y='4' width='10' height='8' rx='3' fill='%233d7a68'/%3E%3C/svg%3E">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --bg: #eef4ee;
+    --stone: #d7e5d8;
+    --stone-2: #f7fbf7;
+    --jade: #3d7a68;
+    --jade-deep: #245246;
+    --ink: #24332c;
+    --muted: #5e7268;
+    --chip: #cfe3d4;
+    --err: #a24b4b;
+    --ok: #2f6d55;
+    --sans: ui-sans-serif, "PingFang SC", "Noto Sans CJK SC", "Hiragino Sans GB", system-ui, sans-serif;
+    --serif: ui-serif, "Songti SC", "STSong", "Noto Serif CJK SC", Georgia, serif;
+    --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+    --tap: 80px;
+    --r: 22px;
+  }
+  html, body { background: #dfe8e0; color: var(--ink); font-family: var(--sans); overflow-x: hidden; }
+  button, input, select { font-family: inherit; }
+
+  #shell {
+    position: sticky; top: 0; z-index: 40;
+    display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px;
+    padding: 10px 14px; background: rgba(247,251,247,0.96);
+    border-bottom: 1px solid var(--stone);
+    font-size: 12px;
+  }
+  #shell .brand { font-family: var(--serif); letter-spacing: 0.28em; color: var(--jade-deep); font-weight: 600; }
+  #shell .badge {
+    background: var(--chip); color: var(--jade-deep); border-radius: 999px;
+    padding: 3px 10px; white-space: nowrap;
+  }
+  #shell .spacer { flex: 1 1 24px; }
+  #shell button {
+    min-height: 34px; padding: 4px 12px; border: 0; border-radius: 999px;
+    background: var(--stone); color: var(--ink); cursor: pointer;
+  }
+  #shell button[aria-pressed="true"] { background: var(--jade); color: #fff; }
+  #shell .readout { color: var(--muted); font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 11px; }
+
+  #stage-host { display: flex; justify-content: center; padding: 20px 0 56px; overflow-x: hidden; }
+  #stage-sizer { position: relative; overflow: hidden; max-width: 100%; }
+  #stage {
+    width: 750px; transform-origin: top left;
+    background: var(--bg); padding: 36px 36px 64px;
+    border-radius: 28px;
+  }
+
+  .museum {
+    text-align: left; margin-bottom: 28px;
+  }
+  .museum .k {
+    font-size: 12px; letter-spacing: 0.42em; color: var(--jade); font-weight: 600;
+  }
+  .museum h1 {
+    font-family: var(--serif); font-size: 44px; font-weight: 500;
+    letter-spacing: 0.22em; line-height: 1.2; margin: 10px 0 12px; color: var(--jade-deep);
+  }
+  .museum p { color: var(--muted); font-size: 14px; line-height: 1.8; max-width: 28em; }
+
+  .sec { margin: 32px 0 8px; }
+  .sec-kicker { font-size: 11px; letter-spacing: 0.36em; color: var(--jade); margin-bottom: 8px; }
+  .sec h2 {
+    font-family: var(--serif); font-size: 26px; font-weight: 500;
+    letter-spacing: 0.14em; margin-bottom: 14px;
+  }
+  .note { font-size: 14px; color: var(--muted); line-height: 1.75; margin-bottom: 14px; }
+
+  .type-grid { display: grid; gap: 16px; }
+  .type-row { display: grid; gap: 6px; }
+  .type-row .lvl { font-size: 11px; letter-spacing: 0.2em; color: var(--jade); }
+  .display { font-family: var(--serif); font-size: 40px; letter-spacing: 0.24em; line-height: 1.2; font-weight: 500; }
+  .title { font-size: 22px; letter-spacing: 0.08em; line-height: 1.35; font-weight: 600; }
+  .body { font-size: 16px; line-height: 1.85; }
+  .caption { font-size: 12px; letter-spacing: 0.16em; color: var(--muted); }
+  .latin { font-size: 15px; letter-spacing: 0.04em; color: var(--jade-deep); }
+  .nums { font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 22px; color: var(--jade-deep); }
+  .wrap-box { background: var(--stone-2); border-radius: var(--r); padding: 16px 18px; }
+  .trunc { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .stack-print {
+    font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--muted);
+    background: var(--stone-2); border-radius: 16px; padding: 12px 14px; word-break: break-all;
+  }
+
+  .board { display: grid; gap: 16px; }
+  .cat { background: var(--stone-2); border-radius: 24px; padding: 16px 16px 18px; }
+  .cat h3 { font-size: 12px; letter-spacing: 0.22em; color: var(--jade); margin-bottom: 12px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .hint { width: 100%; font-size: 12px; color: var(--muted); }
+
+  .btn {
+    min-height: var(--tap); min-width: 120px; padding: 12px 20px; border: 0;
+    border-radius: 999px; background: var(--stone); color: var(--ink);
+    font-size: 15px; letter-spacing: 0.06em; cursor: pointer;
+  }
+  .btn-primary { background: var(--jade); color: #fff; }
+  .btn-ghost { background: transparent; box-shadow: inset 0 0 0 1px var(--jade); color: var(--jade-deep); }
+  .btn-danger { background: #f3e4e4; color: var(--err); }
+  .btn.is-pressed { transform: none; box-shadow: inset 0 3px 0 rgba(36,82,70,0.25); background: #c5d8c8; }
+  .btn.is-disabled, .btn[disabled] { background: #e3ece4; color: #9aada2; cursor: not-allowed; }
+  .btn:hover:not([disabled]):not(.is-disabled) { filter: none; background: #c8ddcd; }
+  .btn-primary:hover:not([disabled]) { background: var(--jade-deep); }
+
+  .seg { display: flex; background: var(--stone); border-radius: 999px; padding: 4px; }
+  .seg button {
+    min-height: calc(var(--tap) - 8px); flex: 1; border: 0; border-radius: 999px;
+    background: transparent; cursor: pointer; font-size: 14px;
+  }
+  .seg button[aria-selected="true"] { background: #fff; color: var(--jade-deep); font-weight: 600; }
+
+  .chip {
+    display: inline-flex; align-items: center; min-height: 44px; padding: 6px 16px;
+    border-radius: 999px; background: var(--chip); color: var(--jade-deep);
+    font-size: 14px; letter-spacing: 0.06em;
+  }
+  .chip.lg { min-height: 56px; padding: 10px 22px; font-size: 16px; }
+  .chip.on { background: var(--jade); color: #fff; }
+
+  .label-card {
+    background: #fff; border-radius: 24px; padding: 18px 18px 16px;
+  }
+  .label-card .k { font-size: 11px; letter-spacing: 0.28em; color: var(--jade); }
+  .label-card h4 { font-family: var(--serif); font-size: 22px; letter-spacing: 0.12em; margin: 6px 0; }
+  .label-card p { font-size: 14px; color: var(--muted); line-height: 1.7; }
+
+  .nodes { display: grid; gap: 8px; }
+  .nodes div {
+    background: #fff; border-radius: 18px; min-height: 56px; display: flex;
+    justify-content: space-between; align-items: center; padding: 0 16px; font-size: 15px;
+  }
+
+  .bar-lab { display: flex; justify-content: space-between; font-family: var(--mono); font-size: 12px; font-variant-numeric: tabular-nums; margin-bottom: 6px; }
+  .bar { height: 14px; background: var(--stone); border-radius: 999px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 58%; background: var(--jade); border-radius: 999px; }
+
+  .field { display: grid; gap: 6px; width: 100%; }
+  .field label { font-size: 12px; letter-spacing: 0.16em; color: var(--muted); }
+  .field input, .field select {
+    min-height: var(--tap); border: 0; border-radius: 18px; background: #fff;
+    padding: 0 16px; font-size: 16px;
+  }
+  .toggle {
+    width: 96px; height: var(--tap); border: 0; border-radius: 999px; background: var(--stone);
+    padding: 8px; cursor: pointer;
+  }
+  .toggle i { display: block; width: 36px; height: calc(var(--tap) - 16px); background: #fff; border-radius: 999px; }
+  .toggle[aria-pressed="true"] { background: var(--jade); }
+  .toggle[aria-pressed="true"] i { margin-left: auto; }
+
+  .toast {
+    background: #fff; border-radius: 18px; padding: 14px 16px; min-height: 56px;
+    font-size: 14px; color: var(--jade-deep);
+  }
+  .empty, .error-box {
+    min-height: 110px; border-radius: 20px; display: flex; align-items: center; justify-content: center;
+    background: #fff; color: var(--muted); font-size: 14px;
+  }
+  .error-box { color: var(--err); background: #f7ecec; }
+
+  .matrix { background: var(--stone-2); border-radius: 24px; padding: 16px; display: grid; gap: 12px; }
+  .matrix-live { min-height: 120px; background: #fff; border-radius: 20px; padding: 16px; }
+  .matrix-live.is-selected { box-shadow: inset 0 0 0 2px var(--jade); }
+  .matrix-live.is-pressed { background: var(--chip); }
+  .matrix-live.is-disabled { opacity: 0.45; }
+  .matrix-live.is-confirmed { background: #e7f3ea; }
+  .matrix-live.is-error { background: #f7ecec; color: var(--err); }
+  .status-line { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+  .rest-grid { display: grid; gap: 10px; }
+  .rest {
+    text-align: left; width: 100%; border: 0; background: #fff; border-radius: 20px;
+    padding: 14px 16px; min-height: 96px; cursor: pointer;
+  }
+  .rest[aria-pressed="true"] { box-shadow: inset 0 0 0 2px var(--jade); }
+  .rest[disabled] { opacity: 0.45; cursor: not-allowed; }
+  .rest .nm { font-size: 18px; letter-spacing: 0.08em; font-weight: 600; }
+  .rest .pv { font-family: var(--mono); font-size: 13px; color: var(--jade-deep); margin-top: 4px; font-variant-numeric: tabular-nums; }
+  .shop-chip { display: flex; justify-content: space-between; align-items: center; background: #fff; border-radius: 20px; padding: 14px 16px; min-height: var(--tap); }
+
+  .sheet {
+    display: none; position: fixed; inset: 0; z-index: 80;
+    background: rgba(36,51,44,0.35); align-items: flex-end; justify-content: center;
+  }
+  .sheet.open { display: flex; }
+  .sheet-card {
+    width: min(560px, 100vw); background: var(--bg); border-radius: 28px 28px 0 0;
+    padding: 22px 20px 28px;
+  }
+  .sheet-card h3 { font-family: var(--serif); letter-spacing: 0.12em; font-size: 22px; margin-bottom: 8px; }
+  .sheet-card p { color: var(--muted); line-height: 1.7; margin-bottom: 16px; }
+  .sheet-actions { display: flex; gap: 10px; }
+  .sheet-actions .btn { flex: 1; }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+  <div id="shell" data-review-shell>
+    <span class="brand">玉签组件库</span>
+    <span class="badge" data-prototype-badge>效果原型 · 本地固定内容</span>
+    <span class="badge" data-network-badge>不接接口 / 不读存档</span>
+    <span class="spacer"></span>
+    <button type="button" data-viewport="390" aria-pressed="false">390×844</button>
+    <button type="button" data-viewport="750" aria-pressed="true">750×1334</button>
+    <button type="button" data-viewport="desktop" aria-pressed="false">桌面适配</button>
+    <span class="readout" id="vp-readout">750×1334</span>
+    <span class="readout" id="scale-readout">scale 1.000</span>
+  </div>
+
+  <div id="stage-host">
+    <div id="stage-sizer">
+      <div id="stage">
+        <header class="museum">
+          <div class="k">JADE KIT · MUSEUM LABEL</div>
+          <h1>玉签</h1>
+          <p>浅青瓷组件库。标题拉开字距，控件用大圆角与留白。不是青铜潮痕，也不做锈蚀场景。</p>
+        </header>
+
+        <section class="sec" id="type">
+          <div class="sec-kicker">A · TYPE SPECIMEN</div>
+          <h2>字体标本</h2>
+          <div class="type-grid">
+            <div class="type-row">
+              <div class="lvl">DISPLAY · 40 / 1.20 / 0.24em / 500</div>
+              <div class="display">井栏修整</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">TITLE · 22 / 1.35 / 0.08em / 600</div>
+              <div class="title">本节点只能执行 1 个动作</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">BODY · 16 / 1.85</div>
+              <div class="body">调息恢复最大气血的 30%。本页只演示修整与一枚坊市玉签，不展开十八场景。</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">CAPTION · 12 / 0.16em</div>
+              <div class="caption">第六行 · 修整节点 · 不消耗灵石或修为</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">LATIN</div>
+              <div class="latin">LifeRunStatus remains separate from EndingOutcome.</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">NUMERALS</div>
+              <div class="nums">58 / 100 &nbsp; +40 &nbsp; 67.32% &nbsp; 40 → 20</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">WEIGHT / TRACK</div>
+              <div><span style="font-weight:700">确认调息</span> &nbsp; <span class="caption">GENEROUS TRACKING</span></div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">WRAP</div>
+              <div class="wrap-box body">流云佩由 0 阶升至 1 阶，本次不消耗灵石。淬体使外防 19 → 22（+3），持续到本世结束。</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">ELLIPSIS</div>
+              <div class="trunc body">引魂铃 · 凡品法宝 · 生效时气血上限增加 7 点。佩于法宝位，随身生效。</div>
+            </div>
+            <div class="type-row">
+              <div class="lvl">STACK</div>
+              <pre class="stack-print">display: ui-serif, "Songti SC", "STSong", "Noto Serif CJK SC", Georgia, serif
+ui: ui-sans-serif, "PingFang SC", "Noto Sans CJK SC", "Hiragino Sans GB", system-ui, sans-serif</pre>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec" id="board">
+          <div class="sec-kicker">B · COMPONENT BOARD</div>
+          <h2>组件板 · 玉签</h2>
+          <div class="board">
+            <div class="cat">
+              <h3>01 BUTTONS</h3>
+              <div class="row">
+                <button class="btn btn-primary" type="button">主按钮</button>
+                <button class="btn" type="button">次按钮</button>
+                <button class="btn btn-ghost" type="button">描边</button>
+                <button class="btn btn-danger" type="button">危险</button>
+                <button class="btn is-pressed" type="button">按下</button>
+                <button class="btn is-disabled" type="button" disabled>禁用</button>
+              </div>
+            </div>
+            <div class="cat">
+              <h3>02 TABS</h3>
+              <div class="seg" role="tablist">
+                <button type="button" aria-selected="true" data-seg="rest">修整</button>
+                <button type="button" aria-selected="false" data-seg="shop">坊市</button>
+                <button type="button" aria-selected="false" data-seg="kit">组件</button>
+              </div>
+              <p class="hint" id="seg-hint">当前签：修整</p>
+            </div>
+            <div class="cat">
+              <h3>03 CHIPS</h3>
+              <div class="row">
+                <span class="chip lg">调息</span>
+                <span class="chip">升功</span>
+                <span class="chip">炼宝</span>
+                <span class="chip on">已选</span>
+              </div>
+            </div>
+            <div class="cat">
+              <h3>04 CARDS / LABELS</h3>
+              <article class="label-card">
+                <div class="k">OBJECT LABEL</div>
+                <h4>流云佩</h4>
+                <p>灵品法宝。生效时外防增加 8 点。佩于法宝位，随身生效。</p>
+              </article>
+            </div>
+            <div class="cat">
+              <h3>05 LIST / NODES</h3>
+              <div class="nodes">
+                <div><span>坊市易物</span><span class="caption">已过</span></div>
+                <div><span>井栏修整</span><span class="caption">当前</span></div>
+                <div><span>印阵前夜</span><span class="caption">尚未抵达</span></div>
+              </div>
+            </div>
+            <div class="cat">
+              <h3>06 PROGRESS</h3>
+              <div class="bar-lab"><span>气血</span><span>58 / 100</span></div>
+              <div class="bar"><i></i></div>
+            </div>
+            <div class="cat">
+              <h3>07 INPUT / TOGGLE</h3>
+              <div class="field">
+                <label for="j-select">动作</label>
+                <select id="j-select">
+                  <option>调息</option>
+                  <option>升功</option>
+                  <option>炼宝</option>
+                  <option>淬体</option>
+                </select>
+              </div>
+              <div class="row" style="margin-top:10px">
+                <button class="toggle" type="button" id="j-toggle" aria-pressed="false"><i></i></button>
+                <span class="caption" id="j-toggle-lab">展签：收起</span>
+              </div>
+            </div>
+            <div class="cat">
+              <h3>08 TOAST</h3>
+              <div class="toast" data-toast>本节点已经结算，不能再选择其他动作。</div>
+            </div>
+            <div class="cat">
+              <h3>09 DIVIDER</h3>
+              <hr style="border:0;border-top:1px solid var(--stone);margin:8px 0">
+              <p class="caption">留白即分隔，少用硬线。</p>
+            </div>
+            <div class="cat">
+              <h3>10 EMPTY / ERROR</h3>
+              <div class="row" style="align-items:stretch">
+                <div class="empty" style="flex:1">此屉尚无藏品</div>
+                <div class="error-box" style="flex:1">本节点只能执行 1 个动作</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="sec" id="matrix">
+          <div class="sec-kicker">C · STATE MATRIX</div>
+          <h2>交互状态矩阵</h2>
+          <div class="matrix">
+            <p class="note">点选状态后看玉签样本变化。不可逆确认使用底部签板。</p>
+            <div class="row">
+              <button class="btn" type="button" data-mx="selected">选中</button>
+              <button class="btn is-pressed" type="button" data-mx="pressed">按下</button>
+              <button class="btn" type="button" data-mx="disabled">禁用</button>
+              <button class="btn" type="button" data-mx="confirmed">已确认</button>
+              <button class="btn btn-danger" type="button" data-mx="error">错误</button>
+              <button class="btn btn-primary" type="button" id="mx-confirm-open">打开不可逆确认</button>
+            </div>
+            <div class="matrix-live" id="mx-live">
+              <div style="letter-spacing:.14em;font-family:var(--serif);font-size:22px">调息</div>
+              <div class="nums" style="font-size:16px">气血 58/100 → 88/100</div>
+            </div>
+            <div class="status-line" id="mx-status">state: default</div>
+          </div>
+        </section>
+
+        <section class="sec" id="gameplay">
+          <div class="sec-kicker">D · GAMEPLAY SLICE</div>
+          <h2>井栏修整</h2>
+          <p class="note">气血 58/100 · 灵石 20 · 修为 80。规则：本节点只能执行 1 个动作。结算字段若提及终局，LifeRunStatus 与 EndingOutcome 分列，不合并。</p>
+          <div class="rest-grid">
+            <button class="rest" type="button" data-rest-action="breathe" aria-pressed="false">
+              <div class="nm">调息</div>
+              <div class="pv">气血 58/100 → 88/100</div>
+            </button>
+            <button class="rest" type="button" data-rest-action="cultivate" aria-pressed="false">
+              <div class="nm">升功</div>
+              <div class="pv">修为 80 → 120（+40）</div>
+            </button>
+            <button class="rest" type="button" data-rest-action="reforge" aria-pressed="false">
+              <div class="nm">炼宝</div>
+              <div class="pv">流云佩 0阶 → 1阶</div>
+            </button>
+            <button class="rest" type="button" data-rest-action="tempering" aria-pressed="false">
+              <div class="nm">淬体</div>
+              <div class="pv">外防 19 → 22（+3）</div>
+            </button>
+          </div>
+          <div class="row" style="margin-top:12px">
+            <button class="btn btn-primary" type="button" id="rest-cta" data-primary-action disabled>请先选择修整动作</button>
+          </div>
+          <p class="caption" id="rest-done" hidden>调息完成 · 气血 58/100 → 88/100</p>
+
+          <h2 style="margin-top:28px">坊市玉签</h2>
+          <div class="shop-chip">
+            <div>
+              <div class="nm" style="font-weight:600">引魂铃</div>
+              <div class="caption">凡品法宝 · 20 灵石</div>
+            </div>
+            <button class="btn" type="button" id="shop-buy">购买并装备</button>
+          </div>
+          <p class="caption" id="shop-bal">余额 40 灵石</p>
+          <p class="caption" style="margin-top:10px">若进入本世封册：LifeRunStatus 记本世状态，EndingOutcome 记归宿，两枚字段分签陈列。</p>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <div class="sheet" id="overlay" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="sheet-card">
+      <h3 id="modal-title">确认本次修整？</h3>
+      <p id="modal-body">每个修整节点只能执行一个动作。</p>
+      <div class="sheet-actions">
+        <button class="btn" type="button" id="modal-cancel">再想想</button>
+        <button class="btn btn-primary" type="button" id="modal-ok">确认</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function () {
+  var STAGE_W = 750;
+  var mode = "750";
+  var stage = document.getElementById("stage");
+  var sizer = document.getElementById("stage-sizer");
+  var overlay = document.getElementById("overlay");
+  var modalTitle = document.getElementById("modal-title");
+  var modalBody = document.getElementById("modal-body");
+  var modalOk = document.getElementById("modal-ok");
+  var modalMode = "rest";
+  var selectedRest = null;
+  var restLocked = false;
+  var shopSold = false;
+  var restCopy = {
+    breathe: { name: "调息", preview: "气血 58/100 → 88/100", cta: "确认调息" },
+    cultivate: { name: "升功", preview: "修为 80 → 120（+40）", cta: "确认升功" },
+    reforge: { name: "炼宝", preview: "流云佩 0阶 → 1阶", cta: "确认炼宝" },
+    tempering: { name: "淬体", preview: "外防 19 → 22（+3）", cta: "确认淬体" }
+  };
+
+  function applyScale() {
+    var vw = document.documentElement.clientWidth;
+    var scale = 1;
+    if (mode === "390") scale = Math.min(390 / STAGE_W, vw / STAGE_W);
+    else if (mode === "750") scale = Math.min(1, vw / STAGE_W);
+    else scale = Math.min(1, Math.max(0.4, (vw - 48) / STAGE_W));
+    stage.style.transform = "scale(" + scale + ")";
+    sizer.style.width = Math.floor(STAGE_W * scale) + "px";
+    sizer.style.height = Math.floor(stage.scrollHeight * scale) + "px";
+    document.getElementById("vp-readout").textContent =
+      mode === "390" ? "390×844" : mode === "750" ? "750×1334" : "桌面适配";
+    document.getElementById("scale-readout").textContent = "scale " + scale.toFixed(3);
+    document.documentElement.style.overflowX = "hidden";
+    document.body.style.overflowX = "hidden";
+  }
+
+  document.querySelectorAll("#shell [data-viewport]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      mode = btn.getAttribute("data-viewport");
+      document.querySelectorAll("#shell [data-viewport]").forEach(function (b) {
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+      applyScale();
+    });
+  });
+  window.addEventListener("resize", applyScale);
+  if (window.ResizeObserver) new ResizeObserver(applyScale).observe(stage);
+
+  document.querySelectorAll("[data-seg]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      document.querySelectorAll("[data-seg]").forEach(function (b) {
+        b.setAttribute("aria-selected", b === btn ? "true" : "false");
+      });
+      var map = { rest: "修整", shop: "坊市", kit: "组件" };
+      document.getElementById("seg-hint").textContent = "当前签：" + map[btn.getAttribute("data-seg")];
+    });
+  });
+  var tog = document.getElementById("j-toggle");
+  tog.addEventListener("click", function () {
+    var on = tog.getAttribute("aria-pressed") !== "true";
+    tog.setAttribute("aria-pressed", on ? "true" : "false");
+    document.getElementById("j-toggle-lab").textContent = on ? "展签：展开" : "展签：收起";
+  });
+
+  var live = document.getElementById("mx-live");
+  document.querySelectorAll("[data-mx]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      var st = btn.getAttribute("data-mx");
+      live.className = "matrix-live is-" + st;
+      document.getElementById("mx-status").textContent = "state: " + st;
+    });
+  });
+
+  function openOverlay(kind) {
+    modalMode = kind;
+    overlay.classList.add("open");
+    if (kind === "matrix") {
+      modalTitle.textContent = "此签确认后不可撤回";
+      modalBody.textContent = "确认后样本进入已确认。修整节点仍只能执行 1 个动作。";
+      modalOk.textContent = "确认";
+    } else if (kind === "shop") {
+      modalTitle.textContent = "购买引魂铃？";
+      modalBody.textContent = "法宝位 3：空 → 引魂铃 0阶。灵石 40 → 20。";
+      modalOk.textContent = "确认";
+    } else {
+      var item = restCopy[selectedRest];
+      modalTitle.textContent = "确认本次修整？";
+      modalBody.textContent = "每个修整节点只能执行一个动作。" + (item ? "将执行" + item.name + "：" + item.preview + "。" : "");
+      modalOk.textContent = "确认";
+    }
+  }
+  function closeOverlay() { overlay.classList.remove("open"); }
+
+  document.getElementById("mx-confirm-open").addEventListener("click", function () { openOverlay("matrix"); });
+  document.getElementById("modal-cancel").addEventListener("click", closeOverlay);
+  overlay.addEventListener("click", function (ev) { if (ev.target === overlay) closeOverlay(); });
+
+  document.querySelectorAll("[data-rest-action]").forEach(function (btn) {
+    btn.addEventListener("click", function () {
+      if (restLocked) return;
+      selectedRest = btn.getAttribute("data-rest-action");
+      document.querySelectorAll("[data-rest-action]").forEach(function (b) {
+        b.setAttribute("aria-pressed", b === btn ? "true" : "false");
+      });
+      var cta = document.getElementById("rest-cta");
+      cta.disabled = false;
+      cta.textContent = restCopy[selectedRest].cta;
+    });
+  });
+  document.getElementById("rest-cta").addEventListener("click", function () {
+    if (!selectedRest || restLocked) return;
+    openOverlay("rest");
+  });
+  document.getElementById("shop-buy").addEventListener("click", function () {
+    if (shopSold) return;
+    openOverlay("shop");
+  });
+
+  modalOk.addEventListener("click", function () {
+    if (modalMode === "matrix") {
+      live.className = "matrix-live is-confirmed";
+      document.getElementById("mx-status").textContent = "state: confirmed";
+    } else if (modalMode === "shop") {
+      shopSold = true;
+      document.getElementById("shop-buy").disabled = true;
+      document.getElementById("shop-buy").textContent = "已售罄";
+      document.getElementById("shop-bal").textContent = "余额 20 灵石（40 → 20）";
+    } else if (selectedRest) {
+      restLocked = true;
+      document.getElementById("rest-cta").disabled = true;
+      document.getElementById("rest-cta").textContent = restCopy[selectedRest].name + "完成";
+      document.getElementById("rest-done").hidden = false;
+      document.getElementById("rest-done").textContent =
+        restCopy[selectedRest].name + "完成 · " + restCopy[selectedRest].preview;
+      document.querySelectorAll("[data-rest-action]").forEach(function (b) { b.disabled = true; });
+    }
+    closeOverlay();
+  });
+
+  applyScale();
+})();
+</script>
+</body>
+</html>
