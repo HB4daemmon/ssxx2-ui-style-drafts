@@ -1,0 +1,18 @@
+{
+  "schema_version": "ssxx2-godot-build-v1",
+  "base_path": "/godot",
+  "client": "ssxx-godot-client",
+  "source_kind": "prototype/default",
+  "build_ref": "client.demo.godot.v1",
+  "commit": "local",
+  "required_files": [
+    "index.html",
+    "index.js",
+    "index.wasm",
+    "index.pck",
+    "kernel_host.js",
+    "ssxx2_kernel_wasm.wasm",
+    "version.json",
+    "asset-manifest.json"
+  ]
+}

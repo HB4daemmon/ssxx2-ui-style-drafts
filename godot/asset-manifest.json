@@ -1,0 +1,47 @@
+{
+  "schema_version": "ssxx2-godot-asset-manifest-v1",
+  "base_path": "/godot",
+  "source_kind": "prototype/default",
+  "required_files": [
+    "index.html",
+    "index.js",
+    "index.wasm",
+    "index.pck",
+    "kernel_host.js",
+    "ssxx2_kernel_wasm.wasm",
+    "version.json",
+    "asset-manifest.json"
+  ],
+  "files": [
+    "index.apple-touch-icon.png",
+    "index.apple-touch-icon.png.import",
+    "index.audio.position.worklet.js",
+    "index.audio.worklet.js",
+    "index.html",
+    "index.icon.png",
+    "index.icon.png.import",
+    "index.js",
+    "index.pck",
+    "index.png",
+    "index.png.import",
+    "index.wasm",
+    "kernel_host.js",
+    "ssxx2_kernel_wasm.wasm"
+  ],
+  "sha256": {
+    "index.apple-touch-icon.png": "c674c8b75ed2e1f53eb5d051ef0391ed75d6f5eb02c58dd1bd9b22128c2cfc82",
+    "index.apple-touch-icon.png.import": "eff448864b951f99e4ce49c82a1ef6d00927a7eba377c6485c77be4185ebc142",
+    "index.audio.position.worklet.js": "347b512529c5dca302093f7b9de6d184dd09d10e9a6fba62cbab098a891b2368",
+    "index.audio.worklet.js": "5b476a9c9ce642c0ee4256436d1bc31d9c38f868aca0f9a8e2a57c18d2dec2a3",
+    "index.html": "62237ea80a390bdade026fcc65d26e48e7a26e32f806d9199dd3ba77f02f0bbb",
+    "index.icon.png": "1f7df2ec2e06ca8bef889c56f61e095a644978594dbf846c7aa77dc36b3c22d1",
+    "index.icon.png.import": "bd7cdcb1506afbe04ba9ad0d454c1378d26ca6beb715f003a2c0be1e18651ac6",
+    "index.js": "19eb180d568bb8e17bcf4c72ca034ed3af44deeb90304deefee4e665562dfe31",
+    "index.pck": "59793aadd49180d63a74c02b962621a3edf3cccb0619aadd8cf5775980eb92bb",
+    "index.png": "3cb4495c0b98dfbe4b663cbf2b6836473572339beb66d902367893162a70be0e",
+    "index.png.import": "2c3d2e9a900c60163aa96419790b40454f40f6e5648c6191496c2771e12ad1be",
+    "index.wasm": "e4a43dbae28662b2a68f6136857a94db6695430901515800b9883f6327cb7116",
+    "kernel_host.js": "46aeff7cab61005756ecd6871a5d6a64d946f1f78c909ef3fd51e568c77f3531",
+    "ssxx2_kernel_wasm.wasm": "201d8937ace6097b63538adc2e41eb14b346cd6a39c4a82a53584f04fc759b60"
+  }
+}
